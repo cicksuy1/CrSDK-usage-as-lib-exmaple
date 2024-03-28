@@ -1,0 +1,6 @@
+# CMake build directory
+/build/*
+/something/
+# Ignore compiled binaries
+*.o
+*.out
