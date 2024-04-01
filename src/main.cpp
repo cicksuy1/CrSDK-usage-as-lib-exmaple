@@ -1,35 +1,23 @@
 #include <iostream>
-
-
 #include <cstdlib>
-#if defined(USE_EXPERIMENTAL_FS)
 #include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#else
-#include <filesystem>
-namespace fs = std::filesystem;
-#if defined(__APPLE__)
-#include <unistd.h>
-#endif
-#endif
-
 #include <cstdint>
 #include <iomanip>
+
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
-// #include "CameraDevice.h"
 #include "SonySDK/app/Text.h"
 
-//#define LIVEVIEW_ENB
-
+#define LIVEVIEW_ENB
 #define MSEARCH_ENB
+#define NUM_CAMERAS 1
+
+namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;
 
-
-
-
-int main() {
-        // Change global locale to native locale
+int main()
+{
+    // Change global locale to native locale
     std::locale::global(std::locale(""));
 
     // Make the stream's locale the same as the current global locale
@@ -51,39 +39,77 @@ int main() {
     cli::tout << "Working directory: " << fs::current_path() << '\n';
 
     auto init_success = SDK::Init();
-    if (!init_success) {
+    if (!init_success)
+    {
         cli::tout << "Failed to initialize Remote SDK. Terminating.\n";
         SDK::Release();
         std::exit(EXIT_FAILURE);
     }
     cli::tout << "Remote SDK successfully initialized.\n\n";
 
-
-
     cli::tout << "Enumerate connected camera devices...\n";
-    SDK::ICrEnumCameraObjectInfo* camera_list = nullptr;
+    SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
     auto enum_status = SDK::EnumCameraObjects(&camera_list);
-    if (CR_FAILED(enum_status) || camera_list == nullptr) {
-        cli::tout << "No cameras detected. Connect a camera and retry.\n";
+    if (CR_FAILED(enum_status) || camera_list == nullptr)
+    {
+        cli::tout << "No cameras detected.\n";
         SDK::Release();
         std::exit(EXIT_FAILURE);
     }
     auto ncams = camera_list->GetCount();
     cli::tout << "Camera enumeration successful. " << ncams << " detected.\n\n";
 
-    for (CrInt32u i = 0; i < ncams; ++i) {
-        auto camera_info = camera_list->GetCameraObjectInfo(i);
-        cli::text conn_type(camera_info->GetConnectionTypeName());
-        cli::text model(camera_info->GetModel());
-        cli::text id = TEXT("");
-        if (TEXT("IP") == conn_type) {
-            cli::NetworkInfo ni = cli::parse_ip_info(camera_info->GetId(), camera_info->GetIdSize());
-            id = ni.mac_address;
-        }
-        else id = ((TCHAR*)camera_info->GetId());
-        cli::tout << '[' << i + 1 << "] " << model.data() << " (" << id.data() << ")\n";
+    // Assuming two cameras are connected, create objects for both
+    if (ncams < NUM_CAMERAS)
+    {
+        cli::tout << "Expected " << NUM_CAMERAS << " cameras, found " << ncams << ". Exiting.\n";
+        camera_list->Release();
+        SDK::Release();
+        std::exit(EXIT_FAILURE);
     }
 
-    std::cout << "Hello, World!" << std::endl;
+    typedef std::shared_ptr<cli::CameraDevice> CameraDevicePtr;
+    typedef std::vector<CameraDevicePtr> CameraDeviceList;
+    CameraDeviceList cameraList; // all
+
+    cli::tout << "Connecting to both cameras...\n";
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    {
+        auto *camera_info = camera_list->GetCameraObjectInfo(i);
+        cli::tout << "  - Creating object for camera " << i + 1 << "...\n";
+        CameraDevicePtr camera = CameraDevicePtr(new cli::CameraDevice(i + 1, camera_info));
+        cameraList.push_back(camera);
+    }
+
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+        // Connect to the camera in Remote Control Mode
+        cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
+    }
+
+    cli::tout << "Cameras connected successfully.\n";
+
+    // Get exposure program mode
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+        cameraList[i]->get_exposure_program_mode();
+    }
+
+    // Set exposure program mode
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+        cameraList[i]->set_exposure_program_mode();
+    }
+
+
+    // ... rest of your code using the cameraList ...
+
+
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+        // Disconnect from the camera and release resources before exiting
+        cameraList[i]->disconnect();
+    }
+
+    // Release resources before exiting
+    camera_list->Release();
+    SDK::Release();
+
     return 0;
 }
