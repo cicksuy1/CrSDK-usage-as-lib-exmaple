@@ -1168,7 +1168,7 @@ void CameraDevice::set_iso()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
-void CameraDevice::set_manual_iso()
+void CameraDevice::set_manual_iso(int userInput)
 {
     if (1 != m_prop.iso_sensitivity.writable) {
         // Not a settable property
@@ -1178,18 +1178,7 @@ void CameraDevice::set_manual_iso()
 
     auto& values = m_prop.iso_sensitivity.possible;
 
-    int userISOInput;
-
-    cout << "Please select the desired ISO level (between 0 and 22): ";
-    cin >> userISOInput;
-
-    // Checking whether the user's choice of ISO value is correct
-    if (userISOInput < 0 || userISOInput > 22) {
-        cout << "The ISO value entered is incorrect";
-        return;
-    }
-
-    int selected_index = userISOInput + 16;
+    int selected_index = userInput;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_IsoSensitivity);
@@ -3054,6 +3043,28 @@ void CameraDevice::set_shutter_speed_value()
         tout << "Input cancelled.\n";
         return;
     }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeedValue);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt64Array);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::set_manual_shutter_speed_value(int userInput)
+{
+    if(false == get_shutter_speed_value())
+        return;
+
+    if (1 != m_prop.shutter_speed_value.writable) {
+        // Not a settable property
+        tout << "Shutter Speed Value is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.shutter_speed_value.possible;
+    
+    int selected_index = userInput;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeedValue);

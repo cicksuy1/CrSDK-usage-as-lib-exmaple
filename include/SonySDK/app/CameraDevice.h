@@ -124,7 +124,7 @@ public:
 
     void set_aperture();
     void set_iso();
-    void set_manual_iso();
+    void set_manual_iso(int userInput);
     bool set_save_info() const;
     void set_shutter_speed();
     void set_position_key_setting();
@@ -158,6 +158,7 @@ public:
     void set_gain_db_value();
     void set_white_balance_tint();
     void set_shutter_speed_value();
+    void set_manual_shutter_speed_value(int userInput);
     void set_focus_bracket_focus_range();
     void set_focus_bracket_shot_num();
     void set_movie_image_stabilization_steady_shot();

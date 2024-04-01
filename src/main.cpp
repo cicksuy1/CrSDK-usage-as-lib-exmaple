@@ -19,6 +19,33 @@ namespace SDK = SCRSDK;
 
 using namespace std;
 
+void changeTheBrightness(SCRSDK::ICrEnumCameraObjectInfo *camera_list){
+
+    int userBrightnessInput;
+    cout << "Please select the desired brightness level (between 1 and 38): ";
+    cin >> userBrightnessInput;
+
+    // Checking whether the user's choice of brightness value is correct
+    if (userBrightnessInput < 1 || userBrightnessInput > 38) 
+    {
+        cout << "the brightness value entered is incorrect\nEXIT...";
+        return;
+    } 
+    else if (userBrightnessInput >= 1 || userBrightnessInput <= 14)
+    {
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+            camera_list[i]->set_manual_iso();
+        }
+    }
+    else
+    {
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+            camera_list[i]->set_manual_iso(userBrightnessInput);
+        }
+    }
+}
+
+  
 int main()
 {
     // Change global locale to native locale
@@ -118,13 +145,7 @@ int main()
         for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
             cameraList[i]->set_exposure_program_M_mode();
         }   
-
-        sleep(1);
-
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-            cameraList[i]->set_manual_iso();
-        }
-
+        changeTheBrightness(camera_list);
     }
 
     char userInput;
