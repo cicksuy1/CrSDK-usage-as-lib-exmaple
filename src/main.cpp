@@ -3,10 +3,12 @@
 #include <experimental/filesystem>
 #include <cstdint>
 #include <iomanip>
+#include <unistd.h>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
+#include <unistd.h>
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
@@ -14,6 +16,8 @@
 
 namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;
+
+using namespace std;
 
 int main()
 {
@@ -86,6 +90,8 @@ int main()
         cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
     }
 
+    sleep(5);
+
     cli::tout << "Cameras connected successfully.\n";
 
     // Get exposure program mode
@@ -93,11 +99,47 @@ int main()
         cameraList[i]->get_exposure_program_mode();
     }
 
-    // Set exposure program mode
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-        cameraList[i]->set_exposure_program_mode();
+    sleep(5);
+
+    char userModeInput;
+    cout << "Please select a camera mode ('p' for Auto mode, 'm' for Manual mode): ";
+    cin >> userModeInput;
+
+    // Check for user mode input
+    if (userModeInput == 'p' || userModeInput == 'P') 
+    {
+        // Set exposure program Auto mode
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+            cameraList[i]->set_exposure_program_P_mode();
+        }
+    } else if (userModeInput == 'm' || userModeInput == 'M')
+    {
+        // Set exposure program Manual mode
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+            cameraList[i]->set_exposure_program_M_mode();
+        }   
+
+        sleep(1);
+
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+            cameraList[i]->set_manual_iso();
+        }
+
     }
 
+    char userInput;
+
+    // Loop with user input check
+    while (true) {
+
+        cout << "Press 'q' to quit, or any other key to continue: ";
+        cin >> userInput;
+
+        // Check for user input and exit if 'q' is pressed
+        if (userInput == 'q' || userInput == 'Q') {
+            break;
+        }
+    }
 
     // ... rest of your code using the cameraList ...
 

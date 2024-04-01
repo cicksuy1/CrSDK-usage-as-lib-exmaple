@@ -44,6 +44,11 @@ namespace fs = std::filesystem;
 #include <conio.h>
 #endif
 
+#include <unistd.h>
+#include <iostream>
+#include <cstdlib>
+using namespace std;
+
 
 // Enumerator
 enum Password_Key {
@@ -1163,6 +1168,37 @@ void CameraDevice::set_iso()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+void CameraDevice::set_manual_iso()
+{
+    if (1 != m_prop.iso_sensitivity.writable) {
+        // Not a settable property
+        tout << "ISO is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.iso_sensitivity.possible;
+
+    int userISOInput;
+
+    cout << "Please select the desired ISO level (between 0 and 22): ";
+    cin >> userISOInput;
+
+    // Checking whether the user's choice of ISO value is correct
+    if (userISOInput < 0 || userISOInput > 22) {
+        cout << "The ISO value entered is incorrect";
+        return;
+    }
+
+    int selected_index = userISOInput + 16;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_IsoSensitivity);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
 bool CameraDevice::set_save_info() const
 {
 #if defined(__APPLE__)
@@ -1317,6 +1353,46 @@ void CameraDevice::set_exposure_program_mode()
         tout << "Input cancelled.\n";
         return;
     }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::set_exposure_program_P_mode()
+{
+    if (1 != m_prop.exposure_program_mode.writable) {
+        // Not a settable property
+        tout << "Exposure Program Mode is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.exposure_program_mode.possible;
+
+    int selected_index = 5;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::set_exposure_program_M_mode()
+{
+    if (1 != m_prop.exposure_program_mode.writable) {
+        // Not a settable property
+        tout << "Exposure Program Mode is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.exposure_program_mode.possible;
+
+    int selected_index = 8;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);

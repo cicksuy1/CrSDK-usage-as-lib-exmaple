@@ -124,10 +124,13 @@ public:
 
     void set_aperture();
     void set_iso();
+    void set_manual_iso();
     bool set_save_info() const;
     void set_shutter_speed();
     void set_position_key_setting();
     void set_exposure_program_mode();
+    void set_exposure_program_P_mode();
+    void set_exposure_program_M_mode();
     void set_still_capture_mode();
     void set_focus_mode();
     void set_focus_area();
