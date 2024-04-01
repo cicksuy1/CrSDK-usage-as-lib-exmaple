@@ -81,6 +81,7 @@ public:
     void get_shutter_speed();
     void get_position_key_setting();
     void get_exposure_program_mode();
+    void get_exposure_program_mode( cli::text& cameraMode);
     void get_still_capture_mode();
     void get_focus_mode();
     void get_focus_area();
@@ -127,10 +128,11 @@ public:
     void set_manual_iso(int userInput);
     bool set_save_info() const;
     void set_shutter_speed();
+    void set_manual_shutter_speed(int userInput);
     void set_position_key_setting();
     void set_exposure_program_mode();
-    void set_exposure_program_P_mode();
-    void set_exposure_program_M_mode();
+    void set_exposure_program_P_mode( cli::text& cameraMode);
+    void set_exposure_program_M_mode( cli::text& cameraMode);
     void set_still_capture_mode();
     void set_focus_mode();
     void set_focus_area();

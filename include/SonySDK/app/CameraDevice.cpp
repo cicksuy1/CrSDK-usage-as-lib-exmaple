@@ -456,6 +456,24 @@ void CameraDevice::get_exposure_program_mode()
     tout << "Exposure Program Mode: " << format_exposure_program_mode(m_prop.exposure_program_mode.current) << '\n';
 }
 
+void CameraDevice::get_exposure_program_mode( cli::text& cameraMode)
+{
+    load_properties();
+    cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
+    tout << "Exposure Program Mode: " << cameraMode << '\n';
+
+    // Update the flag of the camera mode
+    if(cameraMode == "Movie_P")
+    {
+        cameraMode = 'p';
+    } 
+    else if (cameraMode == "Movie_M")
+    {
+        cameraMode = 'm';
+    }
+    
+}
+
 void CameraDevice::get_still_capture_mode()
 {
     load_properties();
@@ -1178,7 +1196,7 @@ void CameraDevice::set_manual_iso(int userInput)
 
     auto& values = m_prop.iso_sensitivity.possible;
 
-    int selected_index = userInput;
+    int selected_index = userInput - 10;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_IsoSensitivity);
@@ -1250,6 +1268,26 @@ void CameraDevice::set_shutter_speed()
         tout << "Input cancelled.\n";
         return;
     }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::set_manual_shutter_speed(int userInput)
+{
+    if (1 != m_prop.shutter_speed.writable) {
+        // Not a settable property
+        tout << "Shutter Speed is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.shutter_speed.possible;
+   
+    int selected_index = 33 - userInput;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
@@ -1351,8 +1389,14 @@ void CameraDevice::set_exposure_program_mode()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
-void CameraDevice::set_exposure_program_P_mode()
+void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 {
+
+    if(cameraMode == "p"){
+        tout << "p mode is alredy \n";
+        return;
+    }
+
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
         tout << "Exposure Program Mode is not writable\n";
@@ -1369,10 +1413,18 @@ void CameraDevice::set_exposure_program_P_mode()
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    // Update the flag of the camera mode
+    cameraMode = 'p';
 }
 
-void CameraDevice::set_exposure_program_M_mode()
+void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 {
+    if(cameraMode == "m"){
+        tout << "m mode is alredy \n";
+        return;
+    }
+
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
         tout << "Exposure Program Mode is not writable\n";
@@ -1389,6 +1441,9 @@ void CameraDevice::set_exposure_program_M_mode()
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    // Update the flag of the camera mode
+    cameraMode = 'm';
 }
 
 void CameraDevice::set_still_capture_mode()
@@ -3064,7 +3119,7 @@ void CameraDevice::set_manual_shutter_speed_value(int userInput)
 
     auto& values = m_prop.shutter_speed_value.possible;
     
-    int selected_index = userInput;
+    int selected_index = 33 - userInput;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeedValue);

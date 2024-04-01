@@ -19,35 +19,10 @@ namespace SDK = SCRSDK;
 
 using namespace std;
 
-void changeTheBrightness(SCRSDK::ICrEnumCameraObjectInfo *camera_list){
-
-    int userBrightnessInput;
-    cout << "Please select the desired brightness level (between 1 and 38): ";
-    cin >> userBrightnessInput;
-
-    // Checking whether the user's choice of brightness value is correct
-    if (userBrightnessInput < 1 || userBrightnessInput > 38) 
-    {
-        cout << "the brightness value entered is incorrect\nEXIT...";
-        return;
-    } 
-    else if (userBrightnessInput >= 1 || userBrightnessInput <= 14)
-    {
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-            camera_list[i]->set_manual_iso();
-        }
-    }
-    else
-    {
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-            camera_list[i]->set_manual_iso(userBrightnessInput);
-        }
-    }
-}
-
-  
 int main()
 {
+    cli::text cameraMode;
+
     // Change global locale to native locale
     std::locale::global(std::locale(""));
 
@@ -101,6 +76,7 @@ int main()
 
     typedef std::shared_ptr<cli::CameraDevice> CameraDevicePtr;
     typedef std::vector<CameraDevicePtr> CameraDeviceList;
+
     CameraDeviceList cameraList; // all
 
     cli::tout << "Connecting to both cameras...\n";
@@ -112,60 +88,103 @@ int main()
         cameraList.push_back(camera);
     }
 
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    {
         // Connect to the camera in Remote Control Mode
         cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
     }
 
-    sleep(5);
+    sleep(1);
 
     cli::tout << "Cameras connected successfully.\n";
 
     // Get exposure program mode
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-        cameraList[i]->get_exposure_program_mode();
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    {
+        cameraList[i]->get_exposure_program_mode(cameraMode);
     }
 
-    sleep(5);
+    sleep(1);
 
     char userModeInput;
     cout << "Please select a camera mode ('p' for Auto mode, 'm' for Manual mode): ";
     cin >> userModeInput;
 
     // Check for user mode input
-    if (userModeInput == 'p' || userModeInput == 'P') 
+    if (userModeInput == 'p' || userModeInput == 'P')
     {
         // Set exposure program Auto mode
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-            cameraList[i]->set_exposure_program_P_mode();
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+        {
+            cameraList[i]->set_exposure_program_P_mode(cameraMode);
         }
-    } else if (userModeInput == 'm' || userModeInput == 'M')
+    }
+    else if (userModeInput == 'm' || userModeInput == 'M')
     {
         // Set exposure program Manual mode
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
-            cameraList[i]->set_exposure_program_M_mode();
-        }   
-        changeTheBrightness(camera_list);
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+        {
+            cameraList[i]->set_exposure_program_M_mode(cameraMode);
+
+            // Set the ISO to automatic
+            cameraList[i]->set_manual_iso(10);
+        }
+        // changeTheBrightness(cameraList);
+
+        int userBrightnessInput;
+        cout << "Please select the desired brightness level (between 1 and 48): ";
+        cin >> userBrightnessInput;
+
+        if (cameraMode == "m")
+        {
+            // Checking whether the user's choice of brightness value is correct
+            if (userBrightnessInput < 0 || userBrightnessInput > 48)
+            {
+                cout << "the brightness value entered is incorrect\nEXIT...";
+                return -1;
+            }
+            else if (userBrightnessInput >= 0 && userBrightnessInput <= 33)
+            {
+                for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+                {
+                    // shutter_speed 0 - 33
+                    cameraList[i]->set_manual_shutter_speed(userBrightnessInput);
+                    // Set the ISO to automatic
+                    cameraList[i]->set_manual_iso(10);
+                }
+            }
+            else
+            {
+                for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+                {
+                    // ISO 23 - 38
+                    cameraList[i]->set_manual_shutter_speed(33);
+                    cameraList[i]->set_manual_iso(userBrightnessInput);
+                }
+            }
+        }
     }
 
     char userInput;
 
     // Loop with user input check
-    while (true) {
+    while (true)
+    {
 
         cout << "Press 'q' to quit, or any other key to continue: ";
         cin >> userInput;
 
         // Check for user input and exit if 'q' is pressed
-        if (userInput == 'q' || userInput == 'Q') {
+        if (userInput == 'q' || userInput == 'Q')
+        {
             break;
         }
     }
 
     // ... rest of your code using the cameraList ...
 
-
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i) {
+    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    {
         // Disconnect from the camera and release resources before exiting
         cameraList[i]->disconnect();
     }
