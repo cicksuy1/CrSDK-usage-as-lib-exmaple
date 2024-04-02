@@ -30,8 +30,6 @@ int main()
     cli::tin.imbue(std::locale());
     cli::tout.imbue(std::locale());
 
-    cli::tout << "RemoteSampleApp v1.11.00 running...\n\n";
-
     CrInt32u version = SDK::GetSDKVersion();
     int major = (version & 0xFF000000) >> 24;
     int minor = (version & 0x00FF0000) >> 16;
@@ -117,6 +115,47 @@ int main()
         for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
         {
             cameraList[i]->set_exposure_program_P_mode(cameraMode);
+
+            // Set the ISO to automatic
+            cameraList[i]->set_manual_iso(10);
+        }
+
+        cli::text input;
+        input != TEXT("y");
+        
+        // Option to change the AF Area PositionInput
+        cli::tout << std::endl << "Set the value of X (between 0 and 639)" << std::endl;
+        getline(cli::tin, input);
+        cli::text_stringstream ss1(input);
+        CrInt32u x = 0;
+        cin >> x;
+
+        if (x < 0 || x > 639) {
+            cli::tout << "Input cancelled.\n";
+            return -1;
+        }
+
+        cli::tout << "input X = " << x << '\n';
+
+        cli::tout << std::endl << "Set the value of Y (between 0 and 479)" << std::endl;
+        std::getline(cli::tin, input);
+        cli::text_stringstream ss2(input);
+        CrInt32u y = 0;
+        cin >> y;
+
+        if (y < 0 || y > 479 ) {
+            cli::tout << "Input cancelled.\n";
+            return -1;
+        }
+
+        cli::tout << "input Y = "<< y << '\n';
+
+        int x_y = x << 16 | y;
+
+        // Set exposure program Manual mode
+        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+        {
+            cameraList[i]->set_manual_af_area_position(x_y);
         }
     }
     else if (userModeInput == 'm' || userModeInput == 'M')
@@ -129,10 +168,9 @@ int main()
             // Set the ISO to automatic
             cameraList[i]->set_manual_iso(10);
         }
-        // changeTheBrightness(cameraList);
 
         int userBrightnessInput;
-        cout << "Please select the desired brightness level (between 1 and 48): ";
+        cout << "Please select the desired brightness level (between 0 and 48): ";
         cin >> userBrightnessInput;
 
         if (cameraMode == "m")

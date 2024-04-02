@@ -138,6 +138,7 @@ public:
     void set_focus_area();
     void set_live_view_image_quality();
     void set_af_area_position();
+    void set_manual_af_area_position(int x_y);
     void set_white_balance();
     void set_custom_wb();
     void set_zoom_operation();
@@ -177,6 +178,7 @@ public:
     void execute_movie_rec();
     void execute_downup_property(CrInt16u code);
     void execute_pos_xy(CrInt16u code);
+    void execute_pos_xy(CrInt16u code, int x_y);
     void change_live_view_enable();
     bool is_live_view_enable() { return m_lvEnbSet; };
     void execute_preset_focus();

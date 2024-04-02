@@ -1393,7 +1393,7 @@ void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 {
 
     if(cameraMode == "p"){
-        tout << "p mode is alredy \n";
+        tout << "The camera is already in P mode \n";
         return;
     }
 
@@ -1421,7 +1421,7 @@ void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 {
     if(cameraMode == "m"){
-        tout << "m mode is alredy \n";
+        tout << "The camera is already in M mode \n";
         return;
     }
 
@@ -1883,6 +1883,107 @@ void CameraDevice::set_af_area_position()
 
     execute_pos_xy(SDK::CrDevicePropertyCode::CrDeviceProperty_AF_Area_Position);
 }
+
+
+void CameraDevice::set_manual_af_area_position(int x_y)
+{
+//     load_properties();
+
+//     if (1 == m_prop.position_key_setting.writable) {
+//         // Set, PriorityKeySettings property
+//         tout << std::endl << "Set camera to PC remote" << std::endl;
+//         SDK::CrDeviceProperty priority;
+//         priority.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_PriorityKeySettings);
+//         priority.SetCurrentValue(SDK::CrPriorityKeySettings::CrPriorityKey_PCRemote);
+//         priority.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+//         auto err_priority = SDK::SetDeviceProperty(m_device_handle, &priority);
+//         if (CR_FAILED(err_priority)) {
+//             tout << "Priority Key setting FAILED\n";
+//             return;
+//         }
+//         std::this_thread::sleep_for(500ms);
+//         get_position_key_setting();
+//     }
+
+//     // Set, ExposureProgramMode property
+//     SDK::CrDeviceProperty expromode;
+//     expromode.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+//     expromode.SetCurrentValue(SDK::CrExposureProgram::CrExposure_P_Auto);
+//     expromode.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+//     SDK::CrError err_expromode;
+//     bool execStat = false;
+//     int i = 0;
+//     while (i < 5)
+//     {
+//         err_expromode = SDK::SetDeviceProperty(m_device_handle, &expromode);
+//         if (CR_FAILED(err_expromode)) {
+//             tout << "Exposure Program mode FAILED1\n";
+//             return;
+//         }
+//         std::this_thread::sleep_for(1000ms);
+//         get_exposure_program_mode();
+//         if (m_prop.exposure_program_mode.current == SDK::CrExposureProgram::CrExposure_P_Auto) {
+//             execStat = true;
+//             break;
+//         }
+//         i++;
+//     }
+//     if (false == execStat)
+//     {
+//         tout << std::endl << "Exposure Program mode FAILED2\n";
+//         return;
+//     }
+
+//     if (1 != m_prop.focus_area.writable) {
+//         tout << "Focus Area is not writable\n";
+//         return;
+//     }
+
+//     SDK::CrDeviceProperty prop;
+//     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_FocusArea);
+//     prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+//     prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+//     auto& values = m_prop.focus_area.possible;
+//     if(find(values.begin(), values.end(), SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) != values.end()) {
+//         prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+//     }
+//     else {
+//         tout << "Focus Area: Flexible_Spot_S is invalid.\n";
+//         tout << "Please confirm Focus Area Limit Setting in Camera Menu.\n";
+//         return;
+//     }
+
+//     auto err_prop = SDK::SetDeviceProperty(m_device_handle, &prop);
+//     execStat = false;
+//     i = 0;
+//     while (i < 5)
+//     {
+//         err_expromode = SDK::SetDeviceProperty(m_device_handle, &prop);
+//         if (CR_FAILED(err_prop)) {
+//             tout << "Focus Area FAILED\n";
+//             return;
+//         }
+//         std::this_thread::sleep_for(1000ms);
+//         get_focus_area();
+//         if (m_prop.focus_area.current == SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) {
+//             execStat = true;
+//             break;
+//         }
+//         i++;
+//     }
+//     if (false == execStat)
+//     {
+//         tout << "Focus Area FAILED\n";
+//         return;
+//     }
+//     tout << "Focus Area SUCCESS\n";
+    get_af_area_position();
+
+    execute_pos_xy(SDK::CrDevicePropertyCode::CrDeviceProperty_AF_Area_Position, x_y);
+}
+
+
 
 void CameraDevice::set_select_media_format()
 {
@@ -3667,6 +3768,21 @@ void CameraDevice::execute_pos_xy(CrInt16u code)
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
+
+
+void CameraDevice::execute_pos_xy(CrInt16u code, int x_y)
+{
+    load_properties();
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue((CrInt64u)x_y);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+
 
 void CameraDevice::execute_preset_focus()
 {
