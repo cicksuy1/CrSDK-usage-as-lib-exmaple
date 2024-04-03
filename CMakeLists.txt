@@ -1,26 +1,53 @@
 # Minimum version of CMake required
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 # Project name
-project(Test)
+set(PROJECT_N Test)
+project(${PROJECT_N} VERSION 1.0)
+
+#set CXX
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(-fsigned-char)
 
 # Include directories
 include_directories(include)
-#set CXX
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# a macro that gets all of the header containing directories. 
+MACRO(header_directories return_list includes_base_folder extention )
+    FILE(GLOB_RECURSE new_list ${includes_base_folder}/*.${extention})
+    SET(dir_list "")
+    FOREACH(file_path ${new_list})
+        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
+        SET(dir_list ${dir_list} ${dir_path})
+    ENDFOREACH()
+    LIST(REMOVE_DUPLICATES dir_list)
+    SET(${return_list} ${dir_list})
+ENDMACRO()
+
+# Source files
+file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # Add the SonySDK directory to the build.
 # This assumes the SonySDK folder is directly under the main project directory.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK)
 
-# Source files
-file(GLOB SOURCES "src/*.cpp")
+# using said macro.
+header_directories(INCLUDES ${PROJECT_SOURCE_DIR}/include/ h)
+
+message("src files:")
+foreach(file ${SRCS})
+        message(STATUS ${file})
+endforeach()
+
+message("include directories:")
+foreach(dir ${INCLUDES})
+        message(STATUS ${dir})
+endforeach()
 
 # Generate executable for your main project
-add_executable(Test ${SOURCES})
+add_executable(Test ${SRCS})
 
 # Define a variable for the installation prefix
 set(CMAKE_INSTALL_PREFIX /usr/local)

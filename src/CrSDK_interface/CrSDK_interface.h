@@ -22,6 +22,8 @@ namespace SDK = SCRSDK;
 
 using namespace std;
 
+typedef std::shared_ptr<cli::CameraDevice> CameraDevicePtr;
+typedef std::vector<CameraDevicePtr> CameraDeviceList;
 
 /**
  * @brief This class provides an interface to the CrSDK library for camera connection and information retrieval.
@@ -34,6 +36,11 @@ public:
      * @brief Constructs a CrSDKInterface object.
      */
     CrSDKInterface();
+
+    /**
+     * @brief Destructor a CrSDKInterface object.
+     */
+    ~CrSDKInterface(); 
 
     /**
      * @brief Initializes the Camera Remote SDK.
@@ -73,9 +80,10 @@ public:
     /**
      * @brief Change the brightness of the camera.
      * @param cameraNumber The number of the camera that the user wants to change the brightness of the camera.
+     * @param userBrightnessInput The brightness index selected by the user
      * @return True if change the brightness was successful, false otherwise.
      */
-    bool changeBrightness(int cameraNumber);
+    bool changeBrightness(int cameraNumber, int userBrightnessInput);
 
     /**
      * @brief Change the AF area position of the camera.
@@ -117,6 +125,8 @@ public:
 
 private:
     std::vector<cli::text> cameraModes; // No size argument here
+    std::vector<CameraDevicePtr> cameraList;
+    SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
 
 };
 

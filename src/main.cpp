@@ -23,6 +23,19 @@ using namespace std;
 
 int main()
 {
+    CrSDKInterface crsdk;
+    bool initSuccess =  crsdk.initializeSDK();
+
+    if(initSuccess){
+        bool enumerateSuccess =  crsdk.enumerateCameraDevices();
+
+        if(enumerateSuccess){
+            bool connectSuccess = crsdk.connectToCameras();
+        }
+    }
+
+    return 0;
+
     cli::text cameraMode;
 
     // Change global locale to native locale
@@ -232,6 +245,4 @@ int main()
     // Release resources before exiting
     camera_list->Release();
     SDK::Release();
-
-    return 0;
 }
