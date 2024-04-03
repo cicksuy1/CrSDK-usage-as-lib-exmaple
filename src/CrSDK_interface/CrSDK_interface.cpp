@@ -241,9 +241,27 @@ cli::text CrSDKInterface::getCameraModeStr(int cameraNumber) const
 }
 
 bool CrSDKInterface::downloadCameraSetting(int cameraNumber){
-    return false;
+    try
+    {
+        cameraList[cameraNumber]->do_download_camera_setting_file();
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "An error occurred when trying to download the camera settings file to the computer: " << e.what() << '\n';
+        return false;
+    }
 }
 
 bool CrSDKInterface::uploadCameraSetting(int cameraNumber){
-    return false;
+    try
+        {
+            cameraList[cameraNumber]->do_upload_camera_setting_file();
+            return true;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "An error occurred while trying to load the camera settings file from the computer: " << e.what() << '\n';
+            return false;
+        }
 }

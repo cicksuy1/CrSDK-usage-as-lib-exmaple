@@ -4142,6 +4142,147 @@ void CameraDevice::do_upload_camera_setting_file()
     }
 }
 
+void CameraDevice::do_manual_download_camera_setting_file()
+{
+    if (false == get_camera_setting_saveread_state())
+        return;
+
+    if (m_prop.camera_setting_save_operation.current == SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable) {
+        tout << "Camera-Setting Save Operation: Enable\n";
+    } else {
+        tout << "Camera-Setting Save Operation: Disable\n";
+    }
+
+    // File Name
+    tout << "\nPlease Enter the name of the file you want to save. \n";
+    tout << "(ex. CUMSET.DAT)\n";
+    tout << "If you do not specify a file name, the file will be saved with the default save name.\n" << std::endl;
+    tout << "[-1] Cancel input\n" << std::endl;
+    tout << "file name > ";
+    text name;
+    std::getline(tin, name);
+    text_stringstream ss(name);
+    int selected_index = 0;
+    ss >> selected_index;
+    if (-1 == selected_index) {
+        tout << "Input cancelled.\n";
+        return;
+    }
+
+    // Get the latest status
+    load_properties();
+    if (SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable != m_prop.camera_setting_save_operation.current) {
+        tout << "Unable to download Camera-Setting file. \n";
+        return;
+    }
+    // File Path
+#if defined(__APPLE__)
+    char path[MAC_MAX_PATH]; /*MAX_PATH*/
+    memset(path, 0, sizeof(path));
+    if(NULL == getcwd(path, sizeof(path) - 1)){
+        tout << "Folder path is too long.\n";
+        return;
+    }
+    char* delimit = "/";
+    if(strlen(path) + strlen(delimit) > MAC_MAX_PATH){
+        tout << "Folder path is too long.\n";
+        return;
+    }
+    strncat(path, delimit, strlen(delimit));
+    auto err = SDK::DownloadSettingFile(m_device_handle, SDK::CrDownloadSettingFileType::CrDownloadSettingFileType_Setup,(CrChar*)path, (CrChar*)name.c_str());
+
+if (CR_FAILED(err)) {
+    tout << "Download Camera-Setting file FAILED\n";
+}
+#else
+    auto path = fs::current_path();
+    auto err = SDK::DownloadSettingFile(m_device_handle, SDK::CrDownloadSettingFileType::CrDownloadSettingFileType_Setup,(CrChar*)path.c_str(), (CrChar*)name.c_str());
+
+    if (CR_FAILED(err)) {
+        tout << "Download Camera-Setting file FAILED\n";
+    }
+#endif
+}
+
+void CameraDevice::do_manual_upload_camera_setting_file()
+{
+    if (false == get_camera_setting_saveread_state())
+        return;
+
+    if (m_prop.camera_setting_read_operation.current == SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable) {
+        tout << "Camera-Setting Read Operation: Enable\n";
+    } else {
+        tout << "Camera-Setting Read Operation: Disable\n";
+    }
+
+    tout << "Have the camera load the configuration file on the PC.\n";
+
+    //Search for *.DAT in current_path
+    std::vector<text> file_names;
+    getFileNames(file_names);
+
+    if (file_names.size() == 0) {
+        tout << "DAT file not found.\n\n";
+        return;
+    }
+    
+    tout << std::endl << "Choose a number:\n";
+    tout << "[-1] Cancel input" << std::endl;
+    for (size_t i = 0; i < file_names.size(); i++)
+    {
+        tout << "[" << i << "]" << file_names[i] << '\n';
+    }
+    tout << "[-1] Cancel input\n" << std::endl;
+
+    tout << "input>";
+    text input;
+    std::getline(tin, input);
+
+    text_stringstream ss(input);
+    int selected_index = 0;
+    ss >> selected_index;
+    if ((selected_index == 0 && input != TEXT("0")) || selected_index < 0 || selected_index >= file_names.size()) {
+        tout << "Input cancelled.\n";
+        return;
+    }
+
+#if defined(__APPLE__)
+    char filename[MAC_MAX_PATH]; /*MAX_PATH*/
+    memset(filename, 0, sizeof(filename));
+    if(NULL == getcwd(filename, sizeof(filename) - 1)){
+        tout << "Folder path is too long.\n";
+        return;
+    }
+    char* delimit = "/";
+    if(strlen(filename) + strlen(delimit) + file_names[selected_index].length() > MAC_MAX_PATH){
+        tout << "Please shorten the file path. \n";
+        return;
+    }
+    strncat(filename, delimit, strlen(delimit));
+    strncat(filename, file_names[selected_index].c_str(), file_names[selected_index].length());
+#else 
+    auto filepath = fs::current_path();
+    filepath.append(file_names[selected_index]);
+    CrChar* filename = (CrChar*)filepath.c_str();
+#endif
+
+    tout << filename << "\n";
+    // Get the latest status
+    load_properties();
+    if (SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable != m_prop.camera_setting_read_operation.current) {
+        tout << "Unable to upload Camera-Setting file. \n";
+        return;
+    }
+
+    auto err = SDK::UploadSettingFile(m_device_handle, SDK::CrUploadSettingFileType::CrUploadSettingFileType_Setup, filename);
+
+    if (CR_FAILED(err)) {
+        tout << "Upload Camera-Setting file FAILED\n";
+    }
+}
+
+
+
 void CameraDevice::getFileNames(std::vector<text> &file_names)
 {
 #if defined(__APPLE__)

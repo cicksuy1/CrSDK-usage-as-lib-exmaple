@@ -31,6 +31,13 @@ int main()
 
         if(enumerateSuccess){
             bool connectSuccess = crsdk.connectToCameras();
+
+            if(connectSuccess){
+                
+                bool downloadSuccess = crsdk.downloadCameraSetting(1);
+
+                bool uploadSuccess = crsdk.uploadCameraSetting(1);
+            }
         }
     }
 
@@ -245,4 +252,6 @@ int main()
     // Release resources before exiting
     camera_list->Release();
     SDK::Release();
+
+    return 0;
 }

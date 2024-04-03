@@ -186,6 +186,9 @@ public:
     void execute_movie_rec_toggle();
     void do_download_camera_setting_file();
     void do_upload_camera_setting_file();
+    void do_manual_download_camera_setting_file();
+    void do_manual_upload_camera_setting_file();
+    
 
     void execute_request_displaystringlist();
     void execute_get_displaystringtypes();
