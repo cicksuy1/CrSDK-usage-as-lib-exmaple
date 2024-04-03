@@ -14,7 +14,7 @@ add_compile_options(-fsigned-char)
 # Include directories
 include_directories(include)
 
-# a macro that gets all of the header containing directories. 
+# macro that gets all of the header containing directories. 
 MACRO(header_directories return_list includes_base_folder extention )
     FILE(GLOB_RECURSE new_list ${includes_base_folder}/*.${extention})
     SET(dir_list "")
@@ -91,7 +91,7 @@ else()
   # Add error handling here if httplib is required
 endif()
 
-# # For SPDLOG_LIBRARY
+# For SPDLOG_LIBRARY
 find_package(spdlog REQUIRED)
 if(spdlog_FOUND)
   target_link_libraries(Test ${SPDLOG_LIBRARY})

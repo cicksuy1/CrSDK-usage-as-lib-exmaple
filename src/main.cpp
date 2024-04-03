@@ -1,3 +1,6 @@
+
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+
 #include <iostream>
 #include <cstdlib>
 #include <experimental/filesystem>
@@ -5,16 +8,22 @@
 #include <iomanip>
 #include <unistd.h>
 #include <unistd.h>
+#include <thread>
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
 
 #include "CrSDK_interface/CrSDK_interface.h"
+#include "http_server/http_server.h"
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
 #define NUM_CAMERAS 1
+#define HOST "10.147.17.134"
+#define PORT 8080
 
 namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;
@@ -23,6 +32,25 @@ using namespace std;
 
 int main()
 {
+    // Configure server parameters
+    std::string serverHost = HOST;
+    int serverPort = PORT;
+    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
+    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
+    spdlog::info("{}", serverHost, ":{}", serverPort);
+
+    
+    // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
+    Server server(serverHost, serverPort, cert_file, key_file);
+
+    // Run the server in a separate thread
+    std::thread serverThread(&Server::run, &server);
+
+    // Wait for serverThread to finish
+    serverThread.join();
+    spdlog::info("ServerThread has finished.");
+
+
     CrSDKInterface crsdk;
     bool initSuccess =  crsdk.initializeSDK();
 
