@@ -68,28 +68,28 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 
-# # For httplib
-# message(STATUS "\nSearching for httplib...")
-# find_package(httplib REQUIRED)
-# if(httplib_FOUND)
-#   target_link_libraries(Test ${httplib_LIBS})
-#   message(STATUS "httplib found!")
-# else()
-#   message(STATUS "httplib not found! Attempting to install...")
-#   #Setting httplib
-#   set(EXTERNAL_PROJECT_NAME httplib)
-#   set(EXTERNAL_PROJECT_URL https://github.com/yhirose/cpp-httplib.git)
-#   # Define the project and its properties
-#   ExternalProject_Add(
-#       httplib
-#       PREFIX ${DEPS_DIR}/${EXTERNAL_PROJECT_NAME}
-#       GIT_REPOSITORY ${EXTERNAL_PROJECT_URL}
-#       GIT_TAG v0.14.3 # Specify the desired release tag MUST BE THIS TAG NO SUPPORT FOR OPENSSL OVER 1.1.1 AFTER THAT!
-#       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- -j12  # This will build with parallel jobs
-#       INSTALL_DIR ${CMAKE_INSTALL_PREFIX}  # Install to default CMake install path
-#   )
-#   # Add error handling here if httplib is required
-# endif()
+# For httplib
+message(STATUS "\nSearching for httplib...")
+find_package(httplib REQUIRED)
+if(httplib_FOUND)
+  target_link_libraries(Test ${httplib_LIBS})
+  message(STATUS "httplib found!")
+else()
+  message(STATUS "httplib not found! Attempting to install...")
+  #Setting httplib
+  set(EXTERNAL_PROJECT_NAME httplib)
+  set(EXTERNAL_PROJECT_URL https://github.com/yhirose/cpp-httplib.git)
+  # Define the project and its properties
+  ExternalProject_Add(
+      httplib
+      PREFIX ${DEPS_DIR}/${EXTERNAL_PROJECT_NAME}
+      GIT_REPOSITORY ${EXTERNAL_PROJECT_URL}
+      GIT_TAG v0.14.3 # Specify the desired release tag MUST BE THIS TAG NO SUPPORT FOR OPENSSL OVER 1.1.1 AFTER THAT!
+      BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- -j12  # This will build with parallel jobs
+      INSTALL_DIR ${CMAKE_INSTALL_PREFIX}  # Install to default CMake install path
+  )
+  # Add error handling here if httplib is required
+endif()
 
 add_compile_options(-fsigned-char)
 target_link_libraries(Test PUBLIC SonySDKLib)
