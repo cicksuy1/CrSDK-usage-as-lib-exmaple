@@ -91,6 +91,55 @@ else()
   # Add error handling here if httplib is required
 endif()
 
+# # For SPDLOG_LIBRARY
+find_package(spdlog REQUIRED)
+if(spdlog_FOUND)
+  target_link_libraries(Test ${SPDLOG_LIBRARY})
+  message(STATUS "spdlog found!")
+else()
+  message(STATUS "spdlog not found, attempting to install...")
+  set(EXTERNAL_PROJECT_NAME spdlog)
+  set(EXTERNAL_PROJECT_URL https://github.com/gabime/spdlog.git)
+  # Define the project and its properties
+  ExternalProject_Add(
+      spdlog
+      PREFIX ${DEPS_DIR}/${EXTERNAL_PROJECT_NAME}
+      GIT_REPOSITORY ${EXTERNAL_PROJECT_URL}
+      GIT_TAG v1.13.0 # Specify the desired release tag
+      BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- -j12  # This will build with parallel jobs
+      INSTALL_DIR ${CMAKE_INSTALL_PREFIX}  # Install to default CMake install path
+  )
+endif()
+
+# For fmt
+message(STATUS "\nSearching for fmt...")
+find_package(fmt REQUIRED)
+if(fmt_FOUND)
+  target_link_libraries(Test fmt::fmt)
+  message(STATUS "fmt found!")
+else()
+  message(STATUS "fmtlib not found, attempting to install...")
+
+  # Run apt-get install command to install fmtlib
+  execute_process(
+      COMMAND sudo apt-get install -y libfmt-dev
+      RESULT_VARIABLE result
+  )
+
+  # Check the result of the apt-get install command
+  if(result)
+      message(FATAL_ERROR "Failed to install fmtlib. Re run with sudo or install it manually and re-run CMake.")
+  endif()
+
+  # Re-check for fmtlib after installation
+  find_package(fmt REQUIRED)
+  if(NOT fmt_FOUND)
+      message(FATAL_ERROR "fmtlib is required but could not be found.")
+  endif()
+  # Add error handling here if fmt is required
+endif()
+
+
 add_compile_options(-fsigned-char)
 target_link_libraries(Test PUBLIC SonySDKLib)
 
