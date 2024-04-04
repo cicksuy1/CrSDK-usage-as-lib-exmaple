@@ -48,6 +48,15 @@ public:
     // Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::shared_ptr<CrSDKInterface> crsdkInterface);
 
     /**
+     * Checks if the specified port is available.
+     *
+     * @param port The port to check.
+     * @return True if the port is available, false otherwise.
+     * @throws std::runtime_error If an error occurs while checking the port availability.
+     */
+    bool isPortAvailable(unsigned short port);
+
+    /**
      * @brief Start the HTTP server to listen for incoming requests.
      */
     void run();

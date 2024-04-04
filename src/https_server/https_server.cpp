@@ -51,11 +51,40 @@ void Server::setupRoutes()
 
 }
 
+bool Server::isPortAvailable(unsigned short port) {
+  // Create a socket to test the port availability
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) {
+    throw std::runtime_error("Failed to create socket!");
+  }
+
+  // Bind the socket to the port
+  sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+  addr.sin_addr.s_addr = INADDR_ANY;
+  int bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+  close(sockfd); // Close the socket after binding
+
+  // Check the bind result
+  if (bind_result < 0) {
+    return false; // Port is not available
+  } else {
+    return true; // Port is available
+  }
+}
+
 // Start the server
 void Server::run()
 {
     try
     {
+        // Check if the port is available
+        if (!isPortAvailable(port_)) 
+        {
+            throw std::runtime_error("Port " + std::to_string(port_) + " is not available!");
+        }
+
         // Print a message to the console indicating the server address and port
         spdlog::info("The server runs at address: {}:{}", host_, port_ );
         // Start the monitoring thread
