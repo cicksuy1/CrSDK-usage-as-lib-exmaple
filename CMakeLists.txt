@@ -27,7 +27,7 @@ MACRO(header_directories return_list includes_base_folder extention )
 ENDMACRO()
 
 # Source files
-file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp, ${PROJECT_SOURCE_DIR}/src/*.h)
+file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # Add the SonySDK directory to the build.
 # This assumes the SonySDK folder is directly under the main project directory.
@@ -139,10 +139,57 @@ else()
   # Add error handling here if fmt is required
 endif()
 
+# For Libevent
+message(STATUS "\nSearching for Libevent...")
+find_package(Libevent REQUIRED)
+if(Libevent_FOUND)
+    target_link_libraries(Test PUBLIC ${LIBEVENT_LIBRARIES})
+    message(STATUS "Libevent found!")
+else()
+    message(STATUS "Libevent not found!")
+    message(STATUS "Installing Libevent...")
+    message(STATUS "Looking for OpenSSL...")
+    # Check if libssl-dev is installed
+    find_package(OpenSSL REQUIRED)
+    if(NOT OpenSSL_FOUND)
+        # If libssl-dev is not found, try to install it
+        message(STATUS "libssl-dev not found, attempting to install...")
+
+        # Run apt-get install command to install libssl-dev
+        execute_process(
+            COMMAND sudo apt-get install -y libssl-dev
+            RESULT_VARIABLE result
+        )
+
+        # Check the result of the apt-get install command
+        if(result)
+            message(FATAL_ERROR "Failed to install libssl-dev. re-run with sudo or install it manually and re-run CMake.")
+        endif()
+        # Re-check for libssl-dev after installation
+        find_package(OpenSSL REQUIRED)
+        if(NOT OpenSSL_FOUND)
+            message(FATAL_ERROR "libssl-dev is required but could not be found.")
+        endif()
+        set(EXTERNAL_PROJECT_NAME libEvent)
+        set(EXTERNAL_PROJECT_URL https://github.com/libevent/libevent.git)
+        # Define the project and its properties
+        ExternalProject_Add(
+            LibEvent
+            PREFIX ${DEPS_DIR}/${EXTERNAL_PROJECT_NAME}
+            GIT_REPOSITORY ${EXTERNAL_PROJECT_URL}
+            GIT_TAG release-2.1.12-stable  # Specify the desired release tag
+            BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- -j12  # This will build with parallel jobs
+            INSTALL_DIR ${CMAKE_INSTALL_PREFIX}  # Install to default CMake install path
+        )
+    endif()
+    # Add error handling here if Libevent is required
+endif()
+
 
 add_compile_options(-fsigned-char)
 target_link_libraries(Test PUBLIC SonySDKLib)
 
 target_link_libraries(Test PUBLIC stdc++fs)
 
+target_link_libraries(Test PUBLIC -lpthread)
 

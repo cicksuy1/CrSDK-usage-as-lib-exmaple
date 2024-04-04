@@ -38,7 +38,7 @@ bool CrSDKInterface::initializeSDK(){
     cli::tout << major << "." << minor << "." << std::setfill(TEXT('0')) << std::setw(2) << patch << "\n";
 
     spdlog::info("Initialize Remote SDK...\n");
-    spdlog::info("Working directory: {}", fs::current_path());
+    // spdlog::info("Working directory: {}", fs::current_path());
 
     auto init_success = SDK::Init();
     if (!init_success)

@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <thread>
 
-#include "CrSDK_interface/CrSDK_interface.h"
+#include "../CrSDK_interface/CrSDK_interface.h"
 
 using json = nlohmann::json;
 
