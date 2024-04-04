@@ -222,13 +222,17 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y){
 }
 
 bool CrSDKInterface::getCameraMode(int cameraNumber){
-
-    // Get exposure program mode
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    try
     {
-        cameraList[i]->get_exposure_program_mode(cameraModes[i]);
+       // Get exposure program mode
+       cameraList[cameraNumber]->get_exposure_program_mode(cameraModes[cameraNumber]);
+       return true;
     }
-    return true;
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
+        return false;
+    }
 }
 
 cli::text CrSDKInterface::getCameraModeStr(int cameraNumber) const

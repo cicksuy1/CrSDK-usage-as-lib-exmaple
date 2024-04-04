@@ -44,7 +44,8 @@ public:
      * @param key_file The path to the SSL key file.
      * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::unique_ptr<CrSDKInterface> crsdkInterface);
+    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface = nullptr);
+    // Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::shared_ptr<CrSDKInterface> crsdkInterface);
 
     /**
      * @brief Start the HTTP server to listen for incoming requests.
@@ -66,8 +67,8 @@ private:
     httplib::SSLServer server;                                  ///< HTTPS server instance.
     std::string host_;                                          ///< Host address on which the server will listen.
     int port_;                                                  ///< Port on which the server will listen.
-    // CrSDKInterface crsdkInterface_;                              ///< Add an instance of CrSDKInterface
-    std::unique_ptr<CrSDKInterface> crsdkInterface_;
+    CrSDKInterface *crsdkInterface_;                              ///< Add an instance of CrSDKInterface
+    // std::shared_ptr<CrSDKInterface> crsdkInterface_;
     std::thread monitoringThread;                               ///< Thread object for monitoring
 
     /**

@@ -25,16 +25,13 @@
 #define HOST "10.147.17.134"
 #define PORT 8085
 
-namespace fs = std::experimental::filesystem;
-namespace SDK = SCRSDK;
-
 using namespace std;
 
 int main()
 {
-
-    std::unique_ptr<CrSDKInterface> crsdk(new CrSDKInterface());
-
+   
+    CrSDKInterface *crsdk = new CrSDKInterface();
+       
     bool initSuccess =  crsdk->initializeSDK();
 
     if(initSuccess){
@@ -43,31 +40,52 @@ int main()
         if(enumerateSuccess){
             bool connectSuccess = crsdk->connectToCameras();
 
+            if(connectSuccess){
+
+                sleep(1);
+
+                // Configure server parameters
+                const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
+                const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
+                
+                // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
+                Server server(HOST, PORT, cert_file, key_file, crsdk);
+
+                server.run();
+
+                // Run the server in a separate thread
+                // std::thread serverThread(&Server::run, &server);
+
+                // Wait for serverThread to finish
+                // serverThread.join();
+                spdlog::info("ServerThread has finished.");
+
+            }
+            else
+            {
+                spdlog::info("EXIT...");
+            }
+        }
+        else
+        {
+            spdlog::info("EXIT...");
         }
     }
+    else
+    {
+        spdlog::info("EXIT...");
+        spdlog::info("8");  
+    }
 
-    sleep(1);
-
-    // Create a copy of the CrSDKInterface object (assuming it has a copy constructor)
-    std::unique_ptr<CrSDKInterface> crsdkInterfaceCopy = std::make_unique<CrSDKInterface>(*crsdk);
-
-    // Configure server parameters
-    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
-    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
+    // Release resources acquired in the constructor or during object lifetime
+    if (crsdk->camera_list != nullptr) {
+        crsdk->camera_list->Release(); // Release the camera list object
+    }
     
-    // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-    Server server(HOST, PORT, cert_file, key_file, std::move(crsdkInterfaceCopy));
+    // Print a message when the program stops
+    spdlog::info("Program stopped.");
 
-    // Run the server in a separate thread
-    std::thread serverThread(&Server::run, &server);
-
-    // Wait for serverThread to finish
-    serverThread.join();
-    spdlog::info("ServerThread has finished.");
-
-    crsdk.reset();
-
-    return 0;
+    std::exit(EXIT_SUCCESS);
 }
 
     // cli::text cameraMode;

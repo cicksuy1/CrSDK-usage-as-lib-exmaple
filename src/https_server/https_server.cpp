@@ -9,11 +9,9 @@
 
 
 // Constructor for Server class with basic HTTPS server parameters
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::unique_ptr<CrSDKInterface> crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port) {
-  crsdkInterface_ = std::move(crsdkInterface); // This would now move ownership (not recommended here)
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface) {
   setupRoutes();
 }
-
 
 // Setup HTTP routes
 void Server::setupRoutes()
@@ -177,7 +175,7 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
 
         // Create a JSON object
-        json resolution_json;
+        nlohmann::json resolution_json = {}; 
 
         // Check if the query parameter 'camera_id' is present
         auto camera_id_param = req.get_param_value("camera_id");
@@ -201,7 +199,15 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to P mode logic...
-        bool success = crsdkInterface_->switchToPMode(camera_id);
+        bool success = false;
+        if(crsdkInterface_){
+            spdlog::info("switch to P mode");
+            success = crsdkInterface_->switchToPMode(camera_id);
+        }
+        else{
+            spdlog::error("ERROR: crsdkInterface_ is nullptr");
+        }
+    
 
         if (success) {
             // Success message

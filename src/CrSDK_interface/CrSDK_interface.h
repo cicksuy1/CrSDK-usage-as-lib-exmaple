@@ -40,7 +40,7 @@ public:
     CrSDKInterface();
 
     /**
-     * @brief Destructor a CrSDKInterface object.
+     * @brief camera_list a CrSDKInterface object.
      */
     ~CrSDKInterface(); 
 
@@ -125,7 +125,7 @@ public:
      */
     bool uploadCameraSetting(int cameraNumber);
 
-private:
+// private:
     std::vector<cli::text> cameraModes; // No size argument here
     std::vector<CameraDevicePtr> cameraList;
     SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
