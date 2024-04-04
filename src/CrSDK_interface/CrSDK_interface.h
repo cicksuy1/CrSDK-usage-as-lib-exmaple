@@ -97,7 +97,13 @@ public:
     bool changeAFAreaPosition(int cameraNumber, int x, int y);
 
     /**
-     * @brief Get the camera mode (auto or manual).
+     * @brief Get information about all cameras mode(auto or manual).
+     * @return True if get the cameras mode was successful, false otherwise.
+     */
+    bool getCamerasMode();
+
+    /**
+     * @brief Get information about a specific camera mode (auto or manual).
      * @param cameraNumber The number of the camera that the user wants to get the camera mode.
      * @return True if get the camera mode was successful, false otherwise.
      */

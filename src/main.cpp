@@ -40,6 +40,10 @@ int main()
         if(enumerateSuccess){
             bool connectSuccess = crsdk->connectToCameras();
 
+            sleep(2);
+
+            bool getModeSuccess = crsdk->getCamerasMode();
+
             if(connectSuccess){
 
                 sleep(1);
@@ -51,13 +55,14 @@ int main()
                 // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
                 Server server(HOST, PORT, cert_file, key_file, crsdk);
 
-                server.run();
+                // server.run();
 
                 // Run the server in a separate thread
-                // std::thread serverThread(&Server::run, &server);
+                std::thread serverThread(&Server::run, &server);
 
                 // Wait for serverThread to finish
-                // serverThread.join();
+                serverThread.join();
+
                 spdlog::info("ServerThread has finished.");
 
             }
@@ -86,6 +91,8 @@ int main()
     spdlog::info("Program stopped.");
 
     std::exit(EXIT_SUCCESS);
+
+    return 0;
 }
 
     // cli::text cameraMode;

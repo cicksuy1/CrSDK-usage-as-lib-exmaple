@@ -8,7 +8,7 @@ CrSDKInterface::CrSDKInterface(){
 
 CrSDKInterface::~CrSDKInterface() {
     // Release resources acquired in the constructor or during object lifetime
-    for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+    for (CrInt32u i = 0; i < cameraList.size(); ++i)
     {
         // Disconnect from the camera and release resources before exiting
         cameraList[i]->disconnect();
@@ -69,9 +69,9 @@ bool CrSDKInterface::enumerateCameraDevices(){
     if (ncams < NUM_CAMERAS)
     {
         cli::tout << "Expected " << NUM_CAMERAS << " cameras, found " << ncams << ". Exiting.\n";
-        camera_list->Release();
-        SDK::Release();
-        return false;
+        // camera_list->Release();
+        // SDK::Release();
+        // return false;
     }
 
     typedef std::shared_ptr<cli::CameraDevice> CameraDevicePtr;
@@ -221,12 +221,37 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y){
     }
 }
 
+bool CrSDKInterface::getCamerasMode(){
+    try
+    {
+        // Get information about all cameras mode
+        for(CrInt32u i = 0; i < NUM_CAMERAS; ++i){
+            cameraList[i]->get_exposure_program_mode(cameraModes[i]);
+            if(!cameraModes[i].empty())
+            {
+                spdlog::info("camera {} mode: {}", i + 1, cameraModes[i]);
+            }
+            else{
+                spdlog::error("Camera mode number {} is currently unavailable", i);
+            }
+
+        }
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
+        return false;
+    }
+}
+
 bool CrSDKInterface::getCameraMode(int cameraNumber){
     try
     {
-       // Get exposure program mode
-       cameraList[cameraNumber]->get_exposure_program_mode(cameraModes[cameraNumber]);
-       return true;
+
+        // Get information about a specific camera mode
+        cameraList[cameraNumber]->get_exposure_program_mode(cameraModes[cameraNumber]);
+        return true;
     }
     catch(const std::exception& e)
     {
@@ -237,7 +262,7 @@ bool CrSDKInterface::getCameraMode(int cameraNumber){
 
 cli::text CrSDKInterface::getCameraModeStr(int cameraNumber) const
 {
-  if (cameraNumber >= 0 && cameraNumber < cameraModes.size()) {
+  if (cameraNumber >= 0 && cameraNumber < cameraList.size()) {
     return cameraModes[cameraNumber];
   } else {
     // Handle invalid camera number (e.g., return default text or throw an exception)
