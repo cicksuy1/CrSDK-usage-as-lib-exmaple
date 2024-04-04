@@ -42,8 +42,9 @@ public:
      * @param port The port on which the server will listen.
      * @param cert_file The path to the SSL certificate file.
      * @param key_file The path to the SSL key file.
+     * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file);
+    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface crsdkInterface);
 
     /**
      * @brief Start the HTTP server to listen for incoming requests.
@@ -65,13 +66,20 @@ private:
     httplib::SSLServer server;                                  ///< HTTPS server instance.
     std::string host_;                                          ///< Host address on which the server will listen.
     int port_;                                                  ///< Port on which the server will listen.
-    CrSDKInterface crsdkInterface;                              ///< Add an instance of CrSDKInterface
-
+    CrSDKInterface crsdkInterface_;                              ///< Add an instance of CrSDKInterface
+    std::thread monitoringThread;                               ///< Thread object for monitoring
 
     /**
      * @brief Set up HTTP routes for the server.
      */
     void setupRoutes();
+
+    /**
+     * @brief HTTP handler for the "indicator" route.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void handleIndicator(const httplib::Request &req, httplib::Response &res);
 
     /**
      * @brief HTTP handler for Receives a request to switch the camera to P mode.
@@ -122,4 +130,4 @@ private:
      */
     void handleUploadCameraSetting(const httplib::Request &req, httplib::Response &res);
 
-}    
+};    

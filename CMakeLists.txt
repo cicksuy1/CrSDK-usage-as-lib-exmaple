@@ -27,7 +27,7 @@ MACRO(header_directories return_list includes_base_folder extention )
 ENDMACRO()
 
 # Source files
-file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp, ${PROJECT_SOURCE_DIR}/src/*.h)
 
 # Add the SonySDK directory to the build.
 # This assumes the SonySDK folder is directly under the main project directory.
@@ -115,7 +115,7 @@ endif()
 message(STATUS "\nSearching for fmt...")
 find_package(fmt REQUIRED)
 if(fmt_FOUND)
-  target_link_libraries(Test fmt::fmt)
+  target_link_libraries(Test PUBLIC fmt::fmt)  # Link fmt publicly
   message(STATUS "fmt found!")
 else()
   message(STATUS "fmtlib not found, attempting to install...")

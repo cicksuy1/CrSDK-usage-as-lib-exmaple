@@ -3,13 +3,13 @@
  * @brief Implementation of the Server class for an HTTP server with optional RTSP streaming capabilities.
  */
 
-#include "server.h"
+#include "https_server.h"
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 
 
 // Constructor for Server class with basic HTTPS server parameters
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port){
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface){
     setupRoutes();
 }
 
@@ -17,8 +17,9 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
 void Server::setupRoutes()
 {
 
-    server.Get("/", [this](const httplib::Request &req, httplib::Response &res)
-               { handleIndicator(req, res); });
+    server.Get("/", [this](const httplib::Request &req, httplib::Response &res){
+        handleIndicator(req, res); 
+    });
 
     server.Get("/switch_to_p_mode", [this](const httplib::Request &req, httplib::Response &res){ 
         handleSwitchToPMode(req, res); 
@@ -68,7 +69,6 @@ void Server::run()
     {
         // Handle the server error and generate an error message
         spdlog::error("Server Error: {}", e.what());
-        handleServerError("Server Error", "run", "200", "An error occurred while starting the server.", e);
     }
 
     // Wait for the monitoring thread to finish (optional)
@@ -105,7 +105,6 @@ void Server::startMonitoringThread() {
                         result.error() == httplib::Error::ConnectionTimeout ||
                         result.error() == httplib::Error::ProxyConnection) {
                         spdlog::error("Connection error! Restarting server...");
-                        handleServerError("Server crashed?", "startMonitoringThread", "206", "An error occurred while communicating with the server.");
                         restartServer(); // Call your existing restartServer function
                     } else {
                         // Handle other errors
@@ -202,7 +201,7 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to P mode logic...
-        bool success = crsdkInterface.switchToPMode(camera_id);
+        bool success = crsdkInterface_.switchToPMode(camera_id);
 
         if (success) {
             // Success message
@@ -256,7 +255,7 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to M mode logic...
-        bool success = crsdkInterface.switchToMMode(camera_id);
+        bool success = crsdkInterface_.switchToMMode(camera_id);
 
         if (success) {
             // Success message
@@ -310,15 +309,15 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
         }
 
         // Check if the query parameters brightness value are present
-        auto brightnessValue = req.get_param_value("brightness_value");
+        auto brightness_value_param = req.get_param_value("brightness_value");
 
-        if (!brightnessValue.empty())
+        if (!brightness_value_param.empty())
         {
             // Convert the parameters to numbers
-            int brightnessValueInt = std::stoi(brightnessValue);
+            int brightnessValue = std::stoi(brightness_value_param);
 
             // change the brightness value logic...
-            bool success = crsdkInterface.changeBrightness(camera_id, brightnessValue);
+            bool success = crsdkInterface_.changeBrightness(camera_id, brightnessValue);
 
             if (success) {
                 // Success message
@@ -390,7 +389,7 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
             int y = std::stoi(y_param);
 
             // change the AF Area Position logic...
-            bool success = crsdkInterface.changeAFAreaPosition(camera_id, x, y);
+            bool success = crsdkInterface_.changeAFAreaPosition(camera_id, x, y);
 
             if (success) {
                 // Success message
@@ -451,12 +450,12 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
         }
 
         // get camera mode logic...
-        bool success = crsdkInterface.getCameraMode(camera_id);
+        bool success = crsdkInterface_.getCameraMode(camera_id);
 
         if (success) {
             // Success message
             resolution_json["message"] = "Successfully retrieved camera mode";
-            resolution_json["mode"] = crsdkInterface.getCameraModeStr(camera_id);
+            resolution_json["mode"] = crsdkInterface_.getCameraModeStr(camera_id);
             res.status = 200; // OK
         } else {
             // Error message
@@ -506,7 +505,7 @@ void Server::handleDownloadCameraSetting(const httplib::Request &req, httplib::R
         }
 
         // Download camera setting logic...
-        bool success = crsdkInterface.getCameraMode(camera_id);
+        bool success = crsdkInterface_.getCameraMode(camera_id);
 
         if (success) {
             // Success message
@@ -560,7 +559,7 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
         }
 
         // upload camera setting logic...
-        bool success = crsdkInterface.uploadCameraSetting(camera_id);
+        bool success = crsdkInterface_.uploadCameraSetting(camera_id);
 
         if (success) {
             // Success message

@@ -7,11 +7,13 @@
 #include <cstdint>
 #include <iomanip>
 #include <unistd.h>
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <unistd.h>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
-#include <unistd.h>
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB

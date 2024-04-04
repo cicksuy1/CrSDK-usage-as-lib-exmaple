@@ -21,7 +21,7 @@ CrSDKInterface::~CrSDKInterface() {
 
 bool CrSDKInterface::initializeSDK(){
 
-     // Change global locale to native locale
+    // Change global locale to native locale
     std::locale::global(std::locale(""));
 
     // Make the stream's locale the same as the current global locale
@@ -34,36 +34,36 @@ bool CrSDKInterface::initializeSDK(){
     int patch = (version & 0x0000FF00) >> 8;
     // int reserved = (version & 0x000000FF);
 
-    cli::tout << "Remote SDK version: ";
+    spdlog::info("Remote SDK version: ");
     cli::tout << major << "." << minor << "." << std::setfill(TEXT('0')) << std::setw(2) << patch << "\n";
 
-    cli::tout << "Initialize Remote SDK...\n";
-    cli::tout << "Working directory: " << fs::current_path() << '\n';
+    spdlog::info("Initialize Remote SDK...\n");
+    spdlog::info("Working directory: {}", fs::current_path());
 
     auto init_success = SDK::Init();
     if (!init_success)
     {
-        cli::tout << "Failed to initialize Remote SDK. Terminating.\n";
+        spdlog::error("Failed to initialize Remote SDK. Terminating.");
         SDK::Release();
         return false;
     }
-    cli::tout << "Remote SDK successfully initialized.\n\n";
+    spdlog::info("Remote SDK successfully initialized.");
 
     return true;
 }
 
 bool CrSDKInterface::enumerateCameraDevices(){
 
-    cli::tout << "Enumerate connected camera devices...\n";
+    spdlog::info("Enumerate connected camera devices...");
     auto enum_status = SDK::EnumCameraObjects(&camera_list);
     if (CR_FAILED(enum_status) || camera_list == nullptr)
     {
-        cli::tout << "No cameras detected.\n";
+        spdlog::error("No cameras detected.");
         SDK::Release();
         return false;
     }
     auto ncams = camera_list->GetCount();
-    cli::tout << "Camera enumeration successful. " << ncams << " detected.\n\n";
+    spdlog::info("Camera enumeration successful. {} detected.", ncams);
 
     // Assuming two cameras are connected, create objects for both
     if (ncams < NUM_CAMERAS)
@@ -85,11 +85,11 @@ bool CrSDKInterface::enumerateCameraDevices(){
 bool CrSDKInterface::connectToCameras(){
     try
     {
-        cli::tout << "Connecting to both cameras...\n";
+        spdlog::info("Connecting to both cameras...");
         for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
         {
             auto *camera_info = camera_list->GetCameraObjectInfo(i);
-            cli::tout << "  - Creating object for camera " << i + 1 << "...\n";
+            spdlog::info("  - Creating object for camera {}", i + 1);
             CameraDevicePtr camera = CameraDevicePtr(new cli::CameraDevice(i + 1, camera_info));
             cameraList.push_back(camera);
         }
@@ -100,13 +100,14 @@ bool CrSDKInterface::connectToCameras(){
             cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
         }
 
-        cli::tout << "Cameras connected successfully.\n";
+        spdlog::info("Cameras connected successfully.");
 
         return true;
     }
     catch(const std::exception& e)
     {
-        std::cerr << "An error occurred while trying to connect to the cameras: "<< e.what() << '\n';
+        spdlog::error("An error occurred while trying to connect to the cameras: {}", e.what());
+        return false;
     }
 }
 
@@ -123,7 +124,7 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
     catch(const std::exception& e)
     {
 
-        std::cerr << "An error occurred while trying to change the camera mode to M mode: " << e.what() << '\n';
+        spdlog::error("An error occurred while trying to change the camera mode to M mode: {}", e.what());
         return false;
     }
 }
@@ -140,7 +141,7 @@ bool CrSDKInterface::switchToPMode(int cameraNumber){
     catch(const std::exception& e)
     {
 
-        std::cerr << "An error occurred while trying to change the camera mode to P mode: " << e.what() << '\n';
+        spdlog::error("An error occurred while trying to change the camera mode to P mode: {}", e.what());
         return false;
     }}
 
@@ -152,8 +153,8 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
             // Checking whether the user's choice of brightness value is correct
             if (userBrightnessInput < 0 || userBrightnessInput > 48)
             {
-                cout << "the brightness value entered is incorrect\nEXIT...";
-                return -1;
+                spdlog::error("the brightness value entered is incorrect\nEXIT...");
+                return false;
             }
             else if (userBrightnessInput >= 0 && userBrightnessInput <= 33)
             {
@@ -174,13 +175,13 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
         } 
         else
         {
-            std::cerr << "Changing the camera brightness is not possible because the camera is not in M(manual) mode" << '\n';
+            spdlog::error("Changing the camera brightness is not possible because the camera is not in M(manual) mode");
             return false;
         }   
     }
     catch(const std::exception& e)
     {
-        std::cerr << "An error occurred while trying to change the brightness of the camera: "<< e.what() << '\n';
+        spdlog::error("An error occurred while trying to change the brightness of the camera: {}", e.what());
         return false;
     }
 }
@@ -191,12 +192,12 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y){
         if (cameraModes[cameraNumber] == "p")
         {
             if (x < 0 || x > 639) {
-                cli::tout << "Error: The selected X value is out of range\n";
+                spdlog::error("Error: The selected X value is out of range");
                 return false;
             }
 
             if (y < 0 || y > 479 ) {
-                cli::tout << "Error: The selected Y value is out of range\n";
+                spdlog::error("Error: The selected Y value is out of range");
                 return false;
             }
 
@@ -209,13 +210,13 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y){
         } 
         else
         {
-            std::cerr << "Changing the camera AF area position is not possible because the camera is not in P(auto) mode" << '\n';
+            spdlog::error("Changing the camera AF area position is not possible because the camera is not in P(auto) mode");
             return false;
         }   
     }
     catch(const std::exception& e)
     {
-        std::cerr << "An error occurred while trying to change the AF area position of the camera: "<< e.what() << '\n';
+        spdlog::error("An error occurred while trying to change the AF area position of the camera: {}", e.what());
         return false;
     }
 }
@@ -248,7 +249,7 @@ bool CrSDKInterface::downloadCameraSetting(int cameraNumber){
     }
     catch(const std::exception& e)
     {
-        std::cerr << "An error occurred when trying to download the camera settings file to the computer: " << e.what() << '\n';
+        spdlog::error("An error occurred when trying to download the camera settings file to the computer: {}", e.what());
         return false;
     }
 }
@@ -261,7 +262,7 @@ bool CrSDKInterface::uploadCameraSetting(int cameraNumber){
         }
         catch(const std::exception& e)
         {
-            std::cerr << "An error occurred while trying to load the camera settings file from the computer: " << e.what() << '\n';
+            spdlog::error("An error occurred while trying to load the camera settings file from the computer: {}", e.what());
             return false;
         }
 }
