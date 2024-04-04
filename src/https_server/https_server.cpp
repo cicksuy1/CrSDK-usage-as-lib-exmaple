@@ -153,11 +153,9 @@ void Server::handleIndicator(const httplib::Request &req, httplib::Response &res
     // Enable CORS
     res.set_header("Access-Control-Allow-Origin", "*");  // Adjust for production
 
-    // Create a JSON array to hold camera objects
-    nlohmann::json response_json = nlohmann::json::array();
+    // Create an empty JSON object    
+    nlohmann::json response_json = {}; 
 
-    nlohmann::json camera_json;
-   
     response_json["message"] = "The server is running";
 
     res.status = 200; // OK
