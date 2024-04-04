@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Project name
-set(PROJECT_N Test)
+set(PROJECT_N CrSDK_HTTPS_Server)
 project(${PROJECT_N} VERSION 1.0)
 
 #set CXX
@@ -47,7 +47,7 @@ foreach(dir ${INCLUDES})
 endforeach()
 
 # Generate executable for your main project
-add_executable(Test ${SRCS})
+add_executable(${PROJECT_N} ${SRCS})
 
 # Define a variable for the installation prefix
 set(CMAKE_INSTALL_PREFIX /usr/local)
@@ -57,22 +57,21 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
         # Must use std::experimental namespace if older than GCC8
         message("[${PROJECT_NAME}] GCC version less than 8. Using std::experimental namespace.")
-        target_compile_definitions(Test PRIVATE USE_EXPERIMENTAL_FS)
+        target_compile_definitions(${PROJECT_N} PRIVATE USE_EXPERIMENTAL_FS)
     endif()
 
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
         # Must explicitly link separate std::filesystem if older than GCC9
         message("[${PROJECT_NAME}] GCC version less than 9. Explicitly linking separate std::filesystem library.")
-        target_link_libraries(Test PRIVATE stdc++fs)
+        target_link_libraries(${PROJECT_N} PRIVATE stdc++fs)
     endif()
 endif()
-
 
 # For httplib
 message(STATUS "\nSearching for httplib...")
 find_package(httplib REQUIRED)
 if(httplib_FOUND)
-  target_link_libraries(Test ${httplib_LIBS})
+  target_link_libraries(${PROJECT_N} ${httplib_LIBS})
   message(STATUS "httplib found!")
 else()
   message(STATUS "httplib not found! Attempting to install...")
@@ -94,7 +93,7 @@ endif()
 # For SPDLOG_LIBRARY
 find_package(spdlog REQUIRED)
 if(spdlog_FOUND)
-  target_link_libraries(Test ${SPDLOG_LIBRARY})
+  target_link_libraries(${PROJECT_N} ${SPDLOG_LIBRARY})
   message(STATUS "spdlog found!")
 else()
   message(STATUS "spdlog not found, attempting to install...")
@@ -115,7 +114,7 @@ endif()
 message(STATUS "\nSearching for fmt...")
 find_package(fmt REQUIRED)
 if(fmt_FOUND)
-  target_link_libraries(Test PUBLIC fmt::fmt)  # Link fmt publicly
+  target_link_libraries(${PROJECT_N} PUBLIC fmt::fmt)  # Link fmt publicly
   message(STATUS "fmt found!")
 else()
   message(STATUS "fmtlib not found, attempting to install...")
@@ -143,7 +142,7 @@ endif()
 message(STATUS "\nSearching for Libevent...")
 find_package(Libevent REQUIRED)
 if(Libevent_FOUND)
-    target_link_libraries(Test PUBLIC ${LIBEVENT_LIBRARIES})
+    target_link_libraries(${PROJECT_N} PUBLIC ${LIBEVENT_LIBRARIES})
     message(STATUS "Libevent found!")
 else()
     message(STATUS "Libevent not found!")
@@ -185,11 +184,26 @@ else()
     # Add error handling here if Libevent is required
 endif()
 
-
 add_compile_options(-fsigned-char)
-target_link_libraries(Test PUBLIC SonySDKLib)
+target_link_libraries(${PROJECT_N} PUBLIC SonySDKLib)
 
-target_link_libraries(Test PUBLIC stdc++fs)
+target_link_libraries(${PROJECT_N} PUBLIC stdc++fs)
 
-target_link_libraries(Test PUBLIC -lpthread)
+target_link_libraries(${PROJECT_N} PUBLIC -lpthread)
+
+# list(APPEND src_files 
+#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libmonitor_protocol_pf.so  # File
+#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libmonitor_protocol.so  # File
+#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libCr_Core.so  # File
+# )
+                      
+# # Copy CrSDK build artifacts after CrSDK's build step
+# add_custom_command(TARGET ${PROJECT_N} POST_BUILD
+#   COMMAND ${CMAKE_COMMAND} -E copy
+#     ${src_files}  # Source: List of files
+#     $<TARGET_FILE_DIR:${PROJECT_N}>  # Destination: Main project's build directory 
+# )
+
+# file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/CrAdapter DESTINATION ${CMAKE_BINARY_DIR}/)
+
 
