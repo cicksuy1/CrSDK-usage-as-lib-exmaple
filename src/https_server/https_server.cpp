@@ -9,9 +9,11 @@
 
 
 // Constructor for Server class with basic HTTPS server parameters
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface){
-    setupRoutes();
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::unique_ptr<CrSDKInterface> crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port) {
+  crsdkInterface_ = std::move(crsdkInterface); // This would now move ownership (not recommended here)
+  setupRoutes();
 }
+
 
 // Setup HTTP routes
 void Server::setupRoutes()
@@ -199,7 +201,7 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to P mode logic...
-        bool success = crsdkInterface_.switchToPMode(camera_id);
+        bool success = crsdkInterface_->switchToPMode(camera_id);
 
         if (success) {
             // Success message
@@ -253,7 +255,7 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to M mode logic...
-        bool success = crsdkInterface_.switchToMMode(camera_id);
+        bool success = crsdkInterface_->switchToMMode(camera_id);
 
         if (success) {
             // Success message
@@ -315,7 +317,7 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
             int brightnessValue = std::stoi(brightness_value_param);
 
             // change the brightness value logic...
-            bool success = crsdkInterface_.changeBrightness(camera_id, brightnessValue);
+            bool success = crsdkInterface_->changeBrightness(camera_id, brightnessValue);
 
             if (success) {
                 // Success message
@@ -387,7 +389,7 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
             int y = std::stoi(y_param);
 
             // change the AF Area Position logic...
-            bool success = crsdkInterface_.changeAFAreaPosition(camera_id, x, y);
+            bool success = crsdkInterface_->changeAFAreaPosition(camera_id, x, y);
 
             if (success) {
                 // Success message
@@ -448,12 +450,12 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
         }
 
         // get camera mode logic...
-        bool success = crsdkInterface_.getCameraMode(camera_id);
+        bool success = crsdkInterface_->getCameraMode(camera_id);
 
         if (success) {
             // Success message
             resolution_json["message"] = "Successfully retrieved camera mode";
-            resolution_json["mode"] = crsdkInterface_.getCameraModeStr(camera_id);
+            resolution_json["mode"] = crsdkInterface_->getCameraModeStr(camera_id);
             res.status = 200; // OK
         } else {
             // Error message
@@ -503,7 +505,7 @@ void Server::handleDownloadCameraSetting(const httplib::Request &req, httplib::R
         }
 
         // Download camera setting logic...
-        bool success = crsdkInterface_.getCameraMode(camera_id);
+        bool success = crsdkInterface_->getCameraMode(camera_id);
 
         if (success) {
             // Success message
@@ -557,7 +559,7 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
         }
 
         // upload camera setting logic...
-        bool success = crsdkInterface_.uploadCameraSetting(camera_id);
+        bool success = crsdkInterface_->uploadCameraSetting(camera_id);
 
         if (success) {
             // Success message

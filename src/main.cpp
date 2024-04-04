@@ -33,25 +33,30 @@ using namespace std;
 int main()
 {
 
-    CrSDKInterface crsdk;
-    bool initSuccess =  crsdk.initializeSDK();
+    std::unique_ptr<CrSDKInterface> crsdk(new CrSDKInterface());
+
+    bool initSuccess =  crsdk->initializeSDK();
 
     if(initSuccess){
-        bool enumerateSuccess =  crsdk.enumerateCameraDevices();
+        bool enumerateSuccess =  crsdk->enumerateCameraDevices();
 
         if(enumerateSuccess){
-            bool connectSuccess = crsdk.connectToCameras();
+            bool connectSuccess = crsdk->connectToCameras();
 
         }
     }
 
+    sleep(1);
+
+    // Create a copy of the CrSDKInterface object (assuming it has a copy constructor)
+    std::unique_ptr<CrSDKInterface> crsdkInterfaceCopy = std::make_unique<CrSDKInterface>(*crsdk);
+
     // Configure server parameters
     const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
     const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
-    spdlog::info("{}", HOST, ":{}", PORT);
     
     // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-    Server server(HOST, PORT, cert_file, key_file, crsdk);
+    Server server(HOST, PORT, cert_file, key_file, std::move(crsdkInterfaceCopy));
 
     // Run the server in a separate thread
     std::thread serverThread(&Server::run, &server);
@@ -60,7 +65,10 @@ int main()
     serverThread.join();
     spdlog::info("ServerThread has finished.");
 
+    crsdk.reset();
+
     return 0;
+}
 
     // cli::text cameraMode;
 
@@ -273,4 +281,4 @@ int main()
     // SDK::Release();
 
     // return 0;
-}
+
