@@ -191,19 +191,19 @@ target_link_libraries(${PROJECT_N} PUBLIC stdc++fs)
 
 target_link_libraries(${PROJECT_N} PUBLIC -lpthread)
 
-# list(APPEND src_files 
-#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libmonitor_protocol_pf.so  # File
-#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libmonitor_protocol.so  # File
-#   ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/libCr_Core.so  # File
-# )
+list(APPEND src_files 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/libmonitor_protocol_pf.so  # File
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/libmonitor_protocol.so  # File
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/libCr_Core.so  # File
+)
                       
-# # Copy CrSDK build artifacts after CrSDK's build step
-# add_custom_command(TARGET ${PROJECT_N} POST_BUILD
-#   COMMAND ${CMAKE_COMMAND} -E copy
-#     ${src_files}  # Source: List of files
-#     $<TARGET_FILE_DIR:${PROJECT_N}>  # Destination: Main project's build directory 
-# )
+# Copy CrSDK build artifacts after CrSDK's build step
+add_custom_command(TARGET ${PROJECT_N} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+    ${src_files}  # Source: List of files
+    $<TARGET_FILE_DIR:${PROJECT_N}>  # Destination: Main project's build directory 
+)
 
-# file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/SonySDK_files/CrAdapter DESTINATION ${CMAKE_BINARY_DIR}/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/CrAdapter DESTINATION ${CMAKE_BINARY_DIR}/)
 
 
