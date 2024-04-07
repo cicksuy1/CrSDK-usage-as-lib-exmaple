@@ -63,6 +63,7 @@ The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface fo
    ```bash
    ./CrSDK_HTTPS_Server  # The executable name might vary depending on your system
    ```
+   The server will listen on port 8085
 
 **Using the Server**
 
