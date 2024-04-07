@@ -70,7 +70,7 @@ Once the server is running, you can send GET requests to the following endpoints
 
 | Endpoint                                    | Description                                                                      |
 |---------------------------------------------|-----------------------------------------------------------------------------------|
-| `/`                                         | HTTPS handler for the "indicator" route
+| `/`                                         | HTTPS handler for getting an indication of the server
 | `/switch_to_p_mode<camera_id>`              | HTTPS handler for Receives a request to switch the camera to P mode.
 | `/switch_to_m_mode<camera_id>`              | HTTPS handler for Receives a request to switch the camera to M mode
 | `/change_brightness<camera_id><value>`      | HTTPS handler for Receives a request to change brightness
