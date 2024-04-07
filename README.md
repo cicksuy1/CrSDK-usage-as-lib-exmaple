@@ -27,12 +27,12 @@ The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface fo
 
 1. **Clone the Project:**
    ```bash
-   git clone https://github.com/cicksuy1/CrSDK-usage-as-lib-exmaple.git
+   https://github.com/itzikChaver/CrSDK-HTTPS-Server.git
    ```
 
 2. **Navigate to the Project Directory:**
    ```bash
-   cd CrSDK-usage-as-lib-exmaple
+   cd CrSDK-HTTPS-Server
    ```
 
 3. **Create a Build Directory:**
