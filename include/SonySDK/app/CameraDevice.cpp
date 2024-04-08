@@ -6447,6 +6447,11 @@ void CameraDevice::check_monitoringstatus()
     }
 }
 
+const std::atomic<bool> &CameraDevice::getM_connected()
+{
+   return m_connected;
+}
+
 void CameraDevice::startMonitoring()
 {
     check_monitoringstatus();

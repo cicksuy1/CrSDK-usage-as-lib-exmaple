@@ -101,9 +101,31 @@ bool CrSDKInterface::connectToCameras(){
         }
         sleep(1);
 
-        spdlog::info("Cameras connected successfully.");
+        bool allConnected = true;
 
-        return true;
+        for (auto& cameraDevicePtr : cameraList) 
+        {
+            if (cameraDevicePtr) 
+            {
+                const std::atomic<bool>& connected = cameraDevicePtr->getM_connected();
+                if (!connected) {
+                    allConnected = false;
+                    break;
+                }
+            }
+        }
+
+        if (allConnected) 
+        {
+            spdlog::info("Cameras connected successfully.");
+            return true;
+        } 
+        else 
+        {
+            spdlog::error("The connection to one or more cameras failed");
+            return false;
+        }
+
     }
     catch(const std::exception& e)
     {

@@ -244,6 +244,7 @@ public:
     virtual void OnPropertyChangedCodes(CrInt32u num, CrInt32u* codes) override;
     virtual void OnLvPropertyChangedCodes(CrInt32u num, CrInt32u* codes) override;
     virtual void OnNotifyContentsTransfer(CrInt32u notify, SCRSDK::CrContentHandle contentHandle, CrChar* filename) override;
+    const std::atomic<bool>& getM_connected();
 
 private:
     void load_properties(CrInt32u num = 0, CrInt32u* codes = nullptr);
