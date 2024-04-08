@@ -22,14 +22,186 @@
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
 #define NUM_CAMERAS 1
-#define HOST "10.147.17.134"
+#define HOST "127.0.0.1"
 #define PORT 8085
 
 using namespace std;
 
+
+/**
+ * @brief Executes a command and returns the output as a string.
+ *
+ * @param cmd The command to execute.
+ * @param useSudo If true, prepend 'sudo' to the command.
+ * @return The output of the command as a string.
+ * @throws std::runtime_error if the command execution fails.
+ */
+std::string executeCommand(const char *cmd, bool useSudo = false)
+{
+    std::string result = "";
+    FILE *pipe;
+
+    // Use sudo if requested
+    if (useSudo)
+    {
+        cmd = ("sudo " + std::string(cmd)).c_str();
+    }
+
+    char buffer[128];
+    pipe = popen(cmd, "r");
+
+    if (!pipe)
+    {
+        throw std::runtime_error("popen() failed for command: " + std::string(cmd));
+    }
+
+    while (!feof(pipe))
+    {
+        if (fgets(buffer, sizeof(buffer), pipe) != NULL)
+        {
+            result += buffer;
+        }
+    }
+
+    pclose(pipe);
+    return result;
+}
+
+/**
+ * @brief Checks if ZeroTier is active and starts it if not.
+ *
+ * @return True if ZeroTier is active or was successfully started, false otherwise.
+ * @throws std::runtime_error if the user does not have sudo access.
+ */
+bool checkAndStartZeroTier()
+{
+  try {
+    // Check for sudo access
+    if (std::system("id -u") != 0) {
+      throw std::runtime_error("User does not have sudo access");
+    }
+
+    // Check if ZeroTier is active
+    std::string ztStatus = executeCommand("sudo zerotier-cli status");
+
+    if (ztStatus.find("zerotier-cli: error") != std::string::npos) {
+      // ZeroTier is not active, attempt to start it
+      spdlog::info("ZeroTier is not active. Starting ZeroTier...");
+      std::string startResult = executeCommand("sudo zerotier-cli start");
+      spdlog::info("Result of the start command: {}", startResult);
+
+      if (startResult.find("200 join OK") != std::string::npos) {
+        // Start successful
+        return true;
+      } else {
+        // Start failed
+        spdlog::error("Failed to start ZeroTier");
+        return false;
+      }
+    } else {
+      // ZeroTier is already active
+      spdlog::info("ZeroTier is already active.");
+      return true;
+    }
+  } catch (const std::runtime_error& e) {
+    spdlog::error("Error: {}", e.what());
+    return false;
+  }
+}
+
+/**
+ * @brief Retrieves the ZeroTier IP address based on network information.
+ *
+ * @return The ZeroTier IP address.
+ * @throws std::runtime_error if no matching IP addresses are found.
+ */
+std::string getZeroTierIP()
+{
+    // Execute the command to get the network information
+    std::string ipCommand = "ip addr show";
+    std::string ipInfo = executeCommand(ipCommand.c_str());
+
+    // Use regular expressions to extract any private IP address (assuming it's in the private range)
+    // Corrected regex
+    std::regex regexIPv4("(10\\.(\\d{1,3}\\.){2}\\d{1,3}/\\d{1,2})|(172\\.(1[6-9]|2\\d|3[0-1])\\.(\\d{1,3}\\.){1,2}\\d{1,3}/\\d{1,2})|(192\\.168\\.\\d{1,3}\\.\\d{1,3})");
+    std::smatch match;
+    std::vector<std::string> filteredAddresses;
+
+    while (std::regex_search(ipInfo, match, regexIPv4))
+    {
+        std::string ipAddress = match[0].str();
+
+        // Remove the subnet part like "/24" or "/16"
+        size_t slashPos = ipAddress.find('/');
+        if (slashPos != std::string::npos)
+        {
+            ipAddress = ipAddress.substr(0, slashPos);
+        }
+
+        spdlog::info("IP: {}", ipAddress);
+
+        std::string prefix = ipAddress.substr(0, 9);
+        if (prefix.compare("10.147.17") == 0) 
+        {
+            filteredAddresses.push_back(ipAddress);
+        }
+
+        // Move to the next match
+        ipInfo = match.suffix();
+    }
+
+    if (!filteredAddresses.empty())
+    {
+        for (const auto &address : filteredAddresses)
+        {
+            spdlog::info("Filtered IP address: {}", address);
+        }
+
+        return filteredAddresses[0]; // Returning the first filtered address as an example
+    }
+    else
+    {
+        return ""; // Return empty string if no matching IP found
+    }
+}
+
 int main()
 {
-   
+    std::string host;
+
+    // bool zeroTierSuccess =  checkAndStartZeroTier();
+    // if(zeroTierSuccess)
+    // {
+    //     std::string ZeroTierIP = getZeroTierIP();
+
+    //     if(!ZeroTierIP.empty())
+    //     {
+    //         spdlog::info("host: {}", ZeroTierIP);
+    //         host = ZeroTierIP;
+    //     }
+    //     else{
+    //         spdlog::warn("ZeroTier assigned IP address not found, The server will run on the localhost");
+    //         host = HOST;
+    //     }
+    // }
+    // else
+    // {
+    //     spdlog::warn("zeroTier does not run");
+    //     host = HOST;
+    // }
+
+    std::string ZeroTierIP = getZeroTierIP();
+
+    if(!ZeroTierIP.empty())
+    {
+        spdlog::info("host: {}", ZeroTierIP);
+        host = ZeroTierIP;
+    }
+    else{
+        spdlog::warn("ZeroTier assigned IP address not found, The server will run on the localhost");
+        host = HOST;
+    }
+
     CrSDKInterface *crsdk = new CrSDKInterface();
        
     bool initSuccess =  crsdk->initializeSDK();
@@ -53,7 +225,7 @@ int main()
                 const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
                 
                 // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-                Server server(HOST, PORT, cert_file, key_file, crsdk);
+                Server server(host, PORT, cert_file, key_file, crsdk);
 
                 // server.run();
 

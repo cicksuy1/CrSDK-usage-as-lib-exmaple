@@ -99,6 +99,7 @@ bool CrSDKInterface::connectToCameras(){
             // Connect to the camera in Remote Control Mode
             cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
         }
+        sleep(1);
 
         spdlog::info("Cameras connected successfully.");
 
