@@ -45,6 +45,46 @@ public:
     ~CrSDKInterface(); 
 
     /**
+    * @brief Disconnects from all connected cameras and releases associated resources.
+     *
+     * This function iterates through the `cameraList` member variable and calls the `disconnect`
+     * method on each camera object. If successful, it logs a message and returns `true`.
+     * Otherwise, it logs an error message with the exception details and returns `false`.
+     *
+     * @return `true` if disconnection and resource release were successful, `false` otherwise.
+     * @throws std::exception If an error occurs during disconnection or resource release.
+    */
+    bool disconnectToCameras();
+
+    /**
+     * @brief Releases the Camera Remote SDK camera list object.
+     *
+     * This function checks if the `camera_list` member variable is not a null pointer. If
+     * it is not null, it calls the `Release` method on the object to release resources.
+     * Otherwise, it logs a warning message indicating that the object cannot be freed because
+     * it hasn't been allocated yet. Regardless of the outcome, it logs a message about the
+     * attempt and returns `true`. If an exception occurs during the release process, an error
+     * message with exception details is logged, and `false` is returned.
+     *
+     * @return `true` if the camera list object was successfully released or wasn't allocated,
+     * `false` if an error occurred during release.
+     * @throws std::exception If an error occurs during camera list object release.
+    */
+    bool releaseCameraList();
+    
+    /**
+     * @brief Releases resources associated with the Camera Remote SDK.
+     *
+     * This function calls the `SDK::Release` method to release resources associated with
+     * the Camera Remote SDK. If successful, it logs a message and returns `true`. Otherwise,
+     * it logs an error message with exception details and returns `false`.
+     *
+     * @return `true` if the release of Camera Remote SDK resources was successful, `false` otherwise.
+     * @throws std::exception If an error occurs during Camera Remote SDK resource release.
+    */
+    bool releaseCameraRemoteSDK();
+
+    /**
      * @brief Initializes the Camera Remote SDK.
      *
      * @return True if initialization was successful, false otherwise.

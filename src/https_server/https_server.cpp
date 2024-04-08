@@ -118,7 +118,6 @@ bool Server::stopServer(){
         spdlog::error("An error occurred while trying to stop the server: {}", e.what());
         return false;
     }
-    
 }
 
 void Server::startMonitoringThread() {

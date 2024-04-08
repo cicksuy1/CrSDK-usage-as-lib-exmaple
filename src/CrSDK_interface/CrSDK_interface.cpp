@@ -19,6 +19,58 @@ CrSDKInterface::~CrSDKInterface() {
     SDK::Release(); // Release the Camera Remote SDK resources
 }
 
+bool CrSDKInterface::disconnectToCameras(){
+    try
+    {
+        for (CrInt32u i = 0; i < cameraList.size(); ++i)
+        {
+            // Disconnect from the camera and release resources before exiting
+            cameraList[i]->disconnect();
+        }
+        spdlog::info("The disconnect from the cameras was successfully.");
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to disconnect from the cameras: {}", e.what());
+        return false;
+    }
+}
+
+bool CrSDKInterface::releaseCameraList(){
+    try
+    {
+        if (camera_list != nullptr) 
+        {
+            camera_list->Release(); // Release the camera list object
+        }
+        else{
+            spdlog::warn("The camera list object cannot be freed because it has not been allocated yet");
+        }
+        spdlog::info("The release the camera list object was successfully.");
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to release the camera list object: {}", e.what());
+        return false;
+    }
+}
+
+bool CrSDKInterface::releaseCameraRemoteSDK(){
+    try
+    {
+        SDK::Release(); // Release the Camera Remote SDK resources
+        spdlog::info("The release of the camera remote SDK resources was successful.");
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to release of the camera remote SDK resources: {}", e.what());
+        return false;
+    }
+}
+
 bool CrSDKInterface::initializeSDK(){
 
     // Change global locale to native locale
