@@ -106,6 +106,21 @@ void Server::run()
     }
 }
 
+bool Server::stopServer(){
+    try
+    {
+        server.stop();
+        spdlog::info("The server stopped successfully.");
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("An error occurred while trying to stop the server: {}", e.what());
+        return false;
+    }
+    
+}
+
 void Server::startMonitoringThread() {
 
     // std::this_thread::sleep_for(std::chrono::seconds(0));

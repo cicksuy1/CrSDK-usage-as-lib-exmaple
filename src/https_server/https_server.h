@@ -62,6 +62,14 @@ public:
     void run();
 
     /**
+    * @brief Stops the server gracefully.
+    *
+    * @return True if the server was stopped successfully, false otherwise.
+    * @throws std::exception If an error occurs while trying to stop the server.
+    */
+    bool stopServer();
+
+    /**
      * @brief function to start the monitoring thread.
      */
     void startMonitoringThread(); 
