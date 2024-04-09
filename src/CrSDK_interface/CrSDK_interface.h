@@ -39,10 +39,10 @@ public:
      */
     CrSDKInterface();
 
-    /**
-     * @brief camera_list a CrSDKInterface object.
-     */
-    ~CrSDKInterface(); 
+    // /**
+    //  * @brief camera_list a CrSDKInterface object.
+    //  */
+    // ~CrSDKInterface(); 
 
     /**
     * @brief Disconnects from all connected cameras and releases associated resources.

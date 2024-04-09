@@ -19,6 +19,7 @@
 #include <vector>
 #include <unistd.h>
 #include <thread>
+#include <atomic>
 
 #include "../CrSDK_interface/CrSDK_interface.h"
 
@@ -84,9 +85,9 @@ private:
     httplib::SSLServer server;                                  ///< HTTPS server instance.
     std::string host_;                                          ///< Host address on which the server will listen.
     int port_;                                                  ///< Port on which the server will listen.
-    CrSDKInterface *crsdkInterface_;                              ///< Add an instance of CrSDKInterface
-    // std::shared_ptr<CrSDKInterface> crsdkInterface_;
+    CrSDKInterface *crsdkInterface_;                            ///< Add an instance of CrSDKInterface
     std::thread monitoringThread;                               ///< Thread object for monitoring
+    std::atomic<bool> stopRequested{false};                     ///< A flag for stopping the server thread
 
     /**
      * @brief Set up HTTP routes for the server.

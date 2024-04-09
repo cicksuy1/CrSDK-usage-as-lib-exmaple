@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <signal.h>
+#include <atomic>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
@@ -28,12 +29,12 @@
 
 using namespace std;
 
-bool running = true;
-bool shouldRunServer = true;
+std::atomic<bool> stopRequested(false);
 
-void handle_sigint(int sig) {
-    running = false;
-    shouldRunServer = false;
+void signalHandler(int sig) {
+  if (sig == SIGINT) {
+    stopRequested.store(true);
+  }
 }
 
 /**
@@ -177,27 +178,6 @@ int main()
 {
     std::string host;
 
-    // bool zeroTierSuccess =  checkAndStartZeroTier();
-    // if(zeroTierSuccess)
-    // {
-    //     std::string ZeroTierIP = getZeroTierIP();
-
-    //     if(!ZeroTierIP.empty())
-    //     {
-    //         spdlog::info("host: {}", ZeroTierIP);
-    //         host = ZeroTierIP;
-    //     }
-    //     else{
-    //         spdlog::warn("ZeroTier assigned IP address not found, The server will run on the localhost");
-    //         host = HOST;
-    //     }
-    // }
-    // else
-    // {
-    //     spdlog::warn("zeroTier does not run");
-    //     host = HOST;
-    // }
-
     std::string ZeroTierIP = getZeroTierIP();
 
     if(!ZeroTierIP.empty())
@@ -210,127 +190,132 @@ int main()
         host = HOST;
     }
 
-    // Register signal handler for Ctrl+C
-    signal(SIGINT, handle_sigint);
-
     CrSDKInterface *crsdk = new CrSDKInterface();
-       
+    
+    // Initializes the Camera Remote SDK.
     bool initSuccess =  crsdk->initializeSDK();
 
-    if(initSuccess){
-        bool enumerateSuccess =  crsdk->enumerateCameraDevices();
-
-        if(enumerateSuccess){
-            bool connectSuccess = crsdk->connectToCameras();
-
-            sleep(2);
-
-            if(connectSuccess)
-            {
-                bool getModeSuccess = crsdk->getCamerasMode();
-
-                if(getModeSuccess)
-                {
-
-                    sleep(1);
-
-                    // Configure server parameters
-                    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
-                    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
-                
-                    // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-                    Server server(host, PORT, cert_file, key_file, crsdk);
-
-                    // Run the server in a separate thread
-                    std::thread serverThread(&Server::run, &server);
-
-                    while (running) 
-                    {
-                        if (shouldRunServer) 
-                        {
-
-                            // Server thread has finished or Ctrl+C was received
-                            spdlog::info("ServerThread has finished or Ctrl+C received.");
-
-                            // Wait for the server thread to exit
-                            serverThread.join();
-
-                            // Exit the loop if Ctrl+C was received
-                            if (!running) 
-                            {
-                                break;
-                            }
-                        } 
-                        else 
-                        {
-                            // Server is not running, wait for user input
-                            for(CrInt32u i = 0; i < crsdk->cameraList.size(); ++i)
-                            {
-                                spdlog::info("Camera number {} is connected", i);
-                            }
-                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                        }
-                    }
-
-                    // Server thread has finished or Ctrl+C was received
-                    spdlog::info("ServerThread has finished or Ctrl+C received.");
-
-                    // Wait for the server thread to exit
-                    serverThread.join();  
-
-                    goto cleanup; // Jump to the cleanup section
-
-                }
-                else
-                {
-                    spdlog::error("Failed to get cameras mode. Exiting.");
-                    // Perform any necessary cleanup (e.g., releasing resources) before exiting
-                    goto cleanup; // Jump to the cleanup section
-                }
-            }
-            else
-            {
-                // Handle connection failure
-                spdlog::error("Failed to connect to cameras. Exiting.");
-                // Perform any necessary cleanup (e.g., releasing resources) before exiting
-                goto cleanup; // Jump to the cleanup section
-            }
-        } 
-        else 
-        {
-            // Handle camera device enumeration failure
-            spdlog::error("Failed to enumerate camera devices. Exiting.");
-            goto cleanup;
-        }
-    } 
-    else 
+    if(!initSuccess)
     {
         // Handle SDK initialization failure
-        spdlog::error("Failed to initialize CrSDK. Exiting.");
-        goto cleanup;
+        spdlog::error("Failed to initialize CrSDK. Exiting...");
+        delete crsdk;
+        spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+
+        return EXIT_FAILURE;
     }
 
-cleanup:
+    // Enumerates connected camera devices.
+    bool enumerateSuccess =  crsdk->enumerateCameraDevices();
+
+    if(!enumerateSuccess)
+    {
+        // Handle camera device enumeration failure
+        spdlog::error("Failed to enumerate camera devices. Exiting...");
+        crsdk->releaseCameraRemoteSDK();
+
+        delete crsdk;
+        spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+
+        return EXIT_FAILURE;
+    }
+
+    // Creating a connection to the cameras after enumerate Camera Devices.
+    bool connectSuccess = crsdk->connectToCameras();
+
+    sleep(2);
+
+    if(!connectSuccess)
+    {
+        // Handle connection failure
+        spdlog::error("Failed to connect to cameras. Exiting...");
+        crsdk->releaseCameraList();
+        crsdk->releaseCameraRemoteSDK();
+
+        delete crsdk;
+        spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+
+        return EXIT_FAILURE;
+
+    }
+
+    // Get information about all cameras mode(auto or manual).
+    bool getModeSuccess = crsdk->getCamerasMode();
+
+    if(!getModeSuccess)
+    {
+        // Handle get cameras mode failure
+        spdlog::error("Failed to get cameras mode. Exiting.");
+        crsdk->disconnectToCameras();
+        crsdk->releaseCameraList();
+        crsdk->releaseCameraRemoteSDK();
+        delete crsdk;
+        spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+
+        return EXIT_FAILURE;
+    }
+
+    sleep(1);
+
+    // Configure server parameters
+    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
+    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
+                
+    // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
+    Server server(host, PORT, cert_file, key_file, crsdk);
+
+    // Run the server in a separate thread
+    std::thread serverThread(&Server::run, &server);
+
+    // Register signal handler for Ctrl+C
+    struct sigaction sa;
+    sa.sa_handler = signalHandler;
+    sigfillset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, NULL);
+
+    int i = 0;
+
+    // Check for stop request periodically or in a loop
+    while (!stopRequested.load()) 
+    {
+      if(i >= 50){
+        for(CrInt32u i = 0; i < crsdk->cameraList.size(); ++i)
+        {
+          spdlog::info("Camera number {} is connected", i);
+        }
+        spdlog::info("The server is running");
+        i = 0;
+      }
+      
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      i++;
+    }
+
+    // Request the server thread to stop gracefully
+    server.stopServer();  // Add a stop() method to your Server class
+
+    // Wait for the server thread to finish
+    serverThread.join();  // Wait for completion before continuing
+
+    // Print a message when the program stops
+    spdlog::info("Program stopped..."); 
 
     // Release resources acquired in the constructor or during object lifetime
-    for (CrInt32u i = 0; i < crsdk->cameraList.size(); ++i)
-    {
-        // Disconnect from the camera and release resources before exiting
-        crsdk->cameraList[i]->disconnect();
-        spdlog::info("Disconnect from the camera {}.", i);
-    }
+    crsdk->disconnectToCameras();
 
     // Release resources acquired in the constructor or during object lifetime.
-    if (crsdk->camera_list != nullptr) {
-        crsdk->camera_list->Release(); // Release the camera list object.
-        spdlog::info("Release the camera list object.");
-    }
-    
+    crsdk->releaseCameraList();
+
+    // Releases resources associated with the Camera Remote SDK.
+    crsdk->releaseCameraRemoteSDK();
+
+    delete crsdk;
+    spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+
     // Print a message when the program stops
-    spdlog::info("Program stopped.");
-
-    // std::exit(EXIT_SUCCESS);
-
+    spdlog::info("The program stopped successfully, exits");
 
     return EXIT_SUCCESS;
 }
+
+

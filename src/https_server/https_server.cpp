@@ -88,11 +88,13 @@ void Server::run()
         // Print a message to the console indicating the server address and port
         spdlog::info("The server runs at address: {}:{}", host_, port_ );
         // Start the monitoring thread
-        startMonitoringThread(); 
+        // startMonitoringThread(); 
 
-        // Start listening for incoming requests on the specified host and port
-        server.listen(host_, port_);
-        spdlog::info("Start listening successfully");
+        while (!stopRequested.load()) 
+        {
+            // Start listening for incoming requests on the specified host and port
+            server.listen(host_, port_);
+        }
     }
     catch (const std::exception &e)
     {
@@ -109,7 +111,9 @@ void Server::run()
 bool Server::stopServer(){
     try
     {
+        spdlog::info("stop server...");
         server.stop();
+        stopRequested.store(true);  // Set the flag to stop
         spdlog::info("The server stopped successfully.");
         return true;
     }

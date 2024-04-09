@@ -6,18 +6,18 @@ CrSDKInterface::CrSDKInterface(){
     cameraModes.resize(4); // Allocate space for 4 elements
 }
 
-CrSDKInterface::~CrSDKInterface() {
-    // Release resources acquired in the constructor or during object lifetime
-    for (CrInt32u i = 0; i < cameraList.size(); ++i)
-    {
-        // Disconnect from the camera and release resources before exiting
-        cameraList[i]->disconnect();
-    }
-    if (camera_list != nullptr) {
-        camera_list->Release(); // Release the camera list object
-    }
-    SDK::Release(); // Release the Camera Remote SDK resources
-}
+// CrSDKInterface::~CrSDKInterface() {
+//     // Release resources acquired in the constructor or during object lifetime
+//     for (CrInt32u i = 0; i < cameraList.size(); ++i)
+//     {
+//         // Disconnect from the camera and release resources before exiting
+//         cameraList[i]->disconnect();
+//     }
+//     if (camera_list != nullptr) {
+//         camera_list->Release(); // Release the camera list object
+//     }
+//     SDK::Release(); // Release the Camera Remote SDK resources
+// }
 
 bool CrSDKInterface::disconnectToCameras(){
     try
@@ -26,8 +26,9 @@ bool CrSDKInterface::disconnectToCameras(){
         {
             // Disconnect from the camera and release resources before exiting
             cameraList[i]->disconnect();
+            spdlog::info("Disconnect from the camera {}.", i);
         }
-        spdlog::info("The disconnect from the cameras was successfully.");
+        spdlog::info("The disconnect from the all cameras was successfully.");
         return true;
     }
     catch(const std::exception& e)
@@ -304,7 +305,7 @@ bool CrSDKInterface::getCamerasMode(){
             cameraList[i]->get_exposure_program_mode(cameraModes[i]);
             if(!cameraModes[i].empty())
             {
-                spdlog::info("camera {} mode: {}", i + 1, cameraModes[i]);
+                spdlog::info("camera {} mode: {}", i, cameraModes[i]);
             }
             else{
                 spdlog::error("Camera mode number {} is currently unavailable", i);
