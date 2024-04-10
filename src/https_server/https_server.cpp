@@ -229,19 +229,25 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
@@ -254,7 +260,6 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         else{
             spdlog::error("ERROR: crsdkInterface_ is nullptr");
         }
-    
 
         if (success) {
             // Success message
@@ -291,19 +296,25 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
@@ -334,64 +345,95 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
 {
     try
     {
-        // Enable CORS
-        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+        // Enable CORS.
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production.
 
-        // Create a JSON object
+        // Create a JSON object.
         json resolution_json;
 
-        // Check if the query parameter 'camera_id' is present
+        // Check if the query parameter 'camera_id' is present.
         auto camera_id_param = req.get_param_value("camera_id");
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
-        // Check if the query parameters brightness value are present
+        if(crsdkInterface_->cameraModes[camera_id] != "m")
+        {
+            // Handling camera mode is not M.
+            spdlog::error("Changing the camera brightness is not possible because the camera is not M(manual) mode");
+            resolution_json["error"] = "Changing the camera brightness is not possible because the camera is not M(manual) mode.";
+            res.status = 405; // Method not allowed.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        // Check if the query parameters brightness value are present.
         auto brightness_value_param = req.get_param_value("brightness_value");
 
-        if (!brightness_value_param.empty())
+        if (brightness_value_param.empty())
         {
-            // Convert the parameters to numbers
-            int brightnessValue = std::stoi(brightness_value_param);
+            // Handle missing parameters
+            resolution_json["error"] = "Missing required parameters.";
+            res.status = 400; // Bad Request
 
-            // change the brightness value logic...
-            bool success = crsdkInterface_->changeBrightness(camera_id, brightnessValue);
-
-            if (success) {
-                // Success message
-                resolution_json["message"] = "Successfully changed brightness value";
-                res.status = 200; // OK
-            } else {
-                // Error message
-                resolution_json["error"] = "Failed to change brightness value";
-                res.status = 500; // Internal Server Error
-            }
-
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
         }
         else
         {
-            // Missing or invalid parameters
-            res.status = 400; // Bad Request
-            res.set_content("Missing or invalid parameters", "text/plain");
-        }
+            // Convert the parameters to numbers.
+            int brightnessValue = std::stoi(brightness_value_param);
 
-        // Set the response content type to JSON
-        res.set_content(resolution_json.dump(), "application/json");
+            // Treatment in case the brightness value entered is incorrect.
+            if (brightnessValue < 0 || brightnessValue > 48)
+            {
+                // Error message
+                resolution_json["error"] = "the brightness value entered is incorrect.";
+                res.status = 405; // Method not allowed.
+            }
+            else
+            {
+                // change the brightness value logic...
+                bool success = crsdkInterface_->changeBrightness(camera_id, brightnessValue);
+
+                if (success) {
+                    // Success message
+                    resolution_json["message"] = "Successfully changed brightness value";
+                    res.status = 200; // OK
+                } else {
+                    // Error message
+                    resolution_json["error"] = "Failed to change brightness value";
+                    res.status = 500; // Internal Server Error
+                }
+            }
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+        }
     }
     catch (const std::exception &e)
     {
@@ -415,19 +457,37 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON.
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        if(crsdkInterface_->cameraModes[camera_id] != "m")
+        {
+            // Handling camera mode is not P.
+            spdlog::error("Changing the camera brightness is not possible because the camera is not P(auto) mode");
+            resolution_json["error"] = "Changing the camera brightness is not possible because the camera is not P(auto) mode.";
+            res.status = 405; // Method not allowed.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
@@ -435,30 +495,59 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
         auto x_param = req.get_param_value("x");
         auto y_param = req.get_param_value("y");
 
-        if (!x_param.empty() && !y_param.empty())
+        if (x_param.empty() || y_param.empty())
+        {
+            // Missing or invalid parameters
+            res.status = 400; // Bad Request.
+            resolution_json["error"] = "Missing or invalid parameters.";
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+        else
         {
             // Convert the parameters to numbers
             int x = std::stoi(x_param);
             int y = std::stoi(y_param);
 
+            if (x < 0 || x > 639) {
+                // Error message
+                spdlog::error("Error: The selected X value is out of range");
+                resolution_json["error"] = "The selected X value is out of range.";
+                res.status = 405; // Method not allowed.
+
+                // Set the response content type to JSON
+                res.set_content(resolution_json.dump(), "application/json");
+                return;
+            }
+
+            if (y < 0 || y > 479 ) {
+                // Error message
+                spdlog::error("Error: The selected Y value is out of range");
+                resolution_json["error"] = "The selected Y value is out of range.";
+                res.status = 405; // Method not allowed.
+
+                // Set the response content type to JSON
+                res.set_content(resolution_json.dump(), "application/json");
+                return;
+            }
+
             // change the AF Area Position logic...
             bool success = crsdkInterface_->changeAFAreaPosition(camera_id, x, y);
 
-            if (success) {
+            if (success) 
+            {
                 // Success message
                 resolution_json["message"] = "Successfully changed AF Area Position";
                 res.status = 200; // OK
-            } else {
+            } 
+            else 
+            {
                 // Error message
                 resolution_json["error"] = "Failed to change AF Area Position";
                 res.status = 500; // Internal Server Error
             }
-        }
-        else
-        {
-            // Missing or invalid parameters
-            res.status = 400; // Bad Request
-            res.set_content("Missing or invalid parameters", "text/plain");
         }
 
         // Set the response content type to JSON
@@ -486,19 +575,25 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
@@ -541,19 +636,25 @@ void Server::handleDownloadCameraSetting(const httplib::Request &req, httplib::R
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
@@ -595,19 +696,25 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
 
         if (camera_id_param.empty())
         {
-            // Handle missing camera_id
-            res.status = 400; // Bad Request
-            res.set_content("Missing camera_id parameter", "text/plain");
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 
         int camera_id = std::stoi(camera_id_param);
 
-        if(camera_id < 0 || camera_id > 3)
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
             res.status = 400; // Bad Request
-            res.set_content("Camera_id out of range", "text/plain");
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
             return;
         }
 

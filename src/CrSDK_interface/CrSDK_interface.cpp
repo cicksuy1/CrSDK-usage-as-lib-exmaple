@@ -229,7 +229,7 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
             // Checking whether the user's choice of brightness value is correct
             if (userBrightnessInput < 0 || userBrightnessInput > 48)
             {
-                spdlog::error("the brightness value entered is incorrect\nEXIT...");
+                spdlog::error("the brightness value entered is incorrect.");
                 return false;
             }
             else if (userBrightnessInput >= 0 && userBrightnessInput <= 33)
@@ -251,7 +251,7 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
         } 
         else
         {
-            spdlog::error("Changing the camera brightness is not possible because the camera is not in M(manual) mode");
+            spdlog::error("Changing the camera brightness is not possible because the camera is not M(manual) mode");
             return false;
         }   
     }
@@ -286,7 +286,7 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y){
         } 
         else
         {
-            spdlog::error("Changing the camera AF area position is not possible because the camera is not in P(auto) mode");
+            spdlog::error("Changing the camera AF area position is not possible because the camera is not P(auto) mode");
             return false;
         }   
     }
