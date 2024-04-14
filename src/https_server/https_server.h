@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
+#include <sys/wait.h>
 
 #include "../CrSDK_interface/CrSDK_interface.h"
 
@@ -47,6 +48,9 @@ public:
      */
     Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface = nullptr);
     // Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::shared_ptr<CrSDKInterface> crsdkInterface);
+
+
+    int get_pid_using_port(unsigned short port);
 
     /**
      * Checks if the specified port is available.

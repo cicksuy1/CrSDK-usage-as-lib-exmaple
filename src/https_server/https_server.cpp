@@ -51,27 +51,98 @@ void Server::setupRoutes()
 
 }
 
+std::vector<std::string> split(const std::string& str, char delimiter) {
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream stream(str);
+
+  while (std::getline(stream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+
+  return tokens;
+}
+
+int Server::get_pid_using_port(unsigned short port) {
+   // Open file /proc/net/tcp
+   std::ifstream proc_net_tcp("/proc/net/tcp");
+   if (!proc_net_tcp.is_open()) {
+     return -1;
+   }
+
+   // Read each line in the file
+   std::string line;
+   while (std::getline(proc_net_tcp, line)) {
+     // look for lines starting with "LISTEN"
+     if (line.find("LISTEN") != std::string::npos) {
+       // Split the row by spaces
+       std::vector<std::string> tokens = split(line, ' ');
+
+       // Get the exit number from the fifth token
+       std::string port_str = tokens[4];
+       int port_num = std::stoi(port_str);
+
+       // If the port number matches, get the process ID from the first token
+       if (port_num == port) {
+         std::string pid_str = tokens[0];
+         int pid = std::stoi(pid_str);
+         return pid;
+       }
+     }
+   }
+
+   // No process found listening to port
+   return -1;
+}
+
 bool Server::isPortAvailable(unsigned short port) {
-  // Create a socket to test the port availability
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) {
-    throw std::runtime_error("Failed to create socket!");
-  }
+    // Create a socket to test the port availability
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        throw std::runtime_error("Failed to create socket!");
+    }
 
-  // Bind the socket to the port
-  sockaddr_in addr;
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = INADDR_ANY;
-  int bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
-  close(sockfd); // Close the socket after binding
+    // Bind the socket to the port
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = INADDR_ANY;
+    int bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    close(sockfd); // Close the socket after binding
 
-  // Check the bind result
-  if (bind_result < 0) {
-    return false; // Port is not available
-  } else {
-    return true; // Port is available
-  }
+    // if the port is busy
+    if (bind_result < 0) 
+    {
+        // Get the process ID (PID) of the mazy process
+        int pid = get_pid_using_port(port);
+        if (pid > 0) 
+        {
+            // Try to terminate the process
+            int kill_result = kill(pid, SIGTERM);
+            if (kill_result < 0) 
+            {
+                // Error in process summary
+                spdlog::error("Failed to terminate process listening on port {}: {}", port, pid);
+                return false;
+            } 
+            else 
+            {
+                // Wait for the process to finish
+                spdlog::info("Wait for the process to finish...");
+                waitpid(pid, NULL, 0); // Corrected function call (no arguments)               
+                
+                // Retry connecting to the port
+                bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+            }
+        } 
+        else 
+        {
+            // Error getting process ID
+            spdlog::error("Failed to get PID of process listening on port {}", port);
+            return false;
+        }
+   }
+
 }
 
 // Start the server
@@ -79,11 +150,11 @@ void Server::run()
 {
     try
     {
-        // Check if the port is available
-        if (!isPortAvailable(port_)) 
-        {
-            throw std::runtime_error("Port " + std::to_string(port_) + " is not available!");
-        }
+        // // Check if the port is available
+        // if (!isPortAvailable(port_)) 
+        // {
+        //     throw std::runtime_error("Port " + std::to_string(port_) + " is not available!");
+        // }
 
         // Print a message to the console indicating the server address and port
         spdlog::info("The server runs at address: {}:{}", host_, port_ );

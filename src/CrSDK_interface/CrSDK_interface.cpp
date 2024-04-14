@@ -44,11 +44,15 @@ bool CrSDKInterface::releaseCameraList(){
         if (camera_list != nullptr) 
         {
             camera_list->Release(); // Release the camera list object
-        }
-        else{
+        }        
+        else
+        {
             spdlog::warn("The camera list object cannot be freed because it has not been allocated yet");
         }
         spdlog::info("The release the camera list object was successfully.");
+
+        cameraList.clear(); // Clear the list after releasing resources
+
         return true;
     }
     catch(const std::exception& e)
@@ -61,6 +65,7 @@ bool CrSDKInterface::releaseCameraList(){
 bool CrSDKInterface::releaseCameraRemoteSDK(){
     try
     {
+        sleep(1);
         SDK::Release(); // Release the Camera Remote SDK resources
         spdlog::info("The release of the camera remote SDK resources was successful.");
         return true;
