@@ -550,11 +550,11 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
             return;
         }
 
-        if(crsdkInterface_->cameraModes[camera_id] != "m")
+        if(crsdkInterface_->cameraModes[camera_id] != "p")
         {
             // Handling camera mode is not P.
-            spdlog::error("Changing the camera brightness is not possible because the camera is not P(auto) mode");
-            resolution_json["error"] = "Changing the camera brightness is not possible because the camera is not P(auto) mode.";
+            spdlog::error("Changing the AF Area Position is not possible because the camera is not P(auto) mode");
+            resolution_json["error"] = "Changing the AF Area Position is not possible because the camera is not P(auto) mode.";
             res.status = 405; // Method not allowed.
 
             // Set the response content type to JSON
