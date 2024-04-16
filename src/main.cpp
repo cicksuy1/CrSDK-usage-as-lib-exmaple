@@ -33,6 +33,9 @@ std::atomic<bool> stopRequested(false);
 
 void signalHandler(int sig) {
   if (sig == SIGINT) {
+    // Print a message when the program stops
+    spdlog::info("Program stopped..."); 
+    
     stopRequested.store(true);
   }
 }
@@ -229,6 +232,7 @@ int main()
     {
         // Handle connection failure
         spdlog::error("Failed to connect to cameras. Exiting...");
+        crsdk->disconnectToCameras();
         crsdk->releaseCameraList();
         crsdk->releaseCameraRemoteSDK();
 
@@ -296,9 +300,6 @@ int main()
 
     // Wait for the server thread to finish
     serverThread.join();  // Wait for completion before continuing
-
-    // Print a message when the program stops
-    spdlog::info("Program stopped..."); 
 
     // Release resources acquired in the constructor or during object lifetime
     crsdk->disconnectToCameras();

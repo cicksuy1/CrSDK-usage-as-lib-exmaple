@@ -22,12 +22,37 @@ CrSDKInterface::CrSDKInterface(){
 bool CrSDKInterface::disconnectToCameras(){
     try
     {
-        for (CrInt32u i = 0; i < cameraList.size(); ++i)
-        {
-            // Disconnect from the camera and release resources before exiting
-            cameraList[i]->disconnect();
-            spdlog::info("Disconnect from the camera {}.", i);
+        CameraDeviceList::const_iterator it = cameraList.begin();
+        for (std::int32_t j = 0; it != cameraList.end(); ++j, ++it) {
+            if ((*it)->is_connected()) {
+                spdlog::info("Initiate disconnect sequence.");
+                auto disconnect_status = (*it)->disconnect();
+                if (!disconnect_status) {
+                    // try again
+                    disconnect_status = (*it)->disconnect();
+                }
+                if (!disconnect_status)
+                    spdlog::error("Disconnect failed to initiate.");
+                else
+                    spdlog::info("Disconnect successfully initiated!");
+            }
+            (*it)->release();
         }
+
+        // for (CrInt32u i = 0; i < cameraList.size(); ++i)
+        // {
+        //     if(cameraList[i]->is_connected())
+        //     {
+        //         // Disconnect from the camera and release resources before exiting
+        //         cameraList[i]->disconnect();
+        //         spdlog::info("Disconnect from the camera {}.", i);
+        //     }
+        //     else
+        //     {
+        //         spdlog::error("Disconnecting the camera {} is not possible because it is not connected.", i);
+        //     }
+        // }
+
         spdlog::info("The disconnect from the all cameras was successfully.");
         return true;
     }
@@ -161,11 +186,23 @@ bool CrSDKInterface::connectToCameras(){
 
         bool allConnected = true;
 
-        for (auto& cameraDevicePtr : cameraList) 
+        // for (auto& cameraDevicePtr : cameraList) 
+        // {
+        //     if (cameraDevicePtr) 
+        //     {
+        //         const std::atomic<bool>& connected = cameraDevicePtr->getM_connected();
+        //         if (!connected) {
+        //             allConnected = false;
+        //             break;
+        //         }
+        //     }
+        // }
+
+        for (auto& camera : cameraList) 
         {
-            if (cameraDevicePtr) 
+            if (camera) 
             {
-                const std::atomic<bool>& connected = cameraDevicePtr->getM_connected();
+                const std::atomic<bool>& connected = camera->is_connected();
                 if (!connected) {
                     allConnected = false;
                     break;
