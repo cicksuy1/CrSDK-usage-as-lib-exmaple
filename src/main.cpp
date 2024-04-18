@@ -359,7 +359,14 @@ int main()
       if(i >= 50){
         for(CrInt32u i = 0; i < crsdk->cameraList.size(); ++i)
         {
-          spdlog::info("Camera number {} is connected", i);
+          if(crsdk->cameraList[i]->is_connected())
+          {
+            spdlog::info("Camera number {} is connected", i);
+          }
+          else 
+          {
+            spdlog::warn("Camera number {} is not connected!", i);
+          }
         }
         spdlog::info("The server is running");
         i = 0;
