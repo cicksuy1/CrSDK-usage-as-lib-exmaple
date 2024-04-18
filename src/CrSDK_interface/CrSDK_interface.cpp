@@ -3,7 +3,7 @@
 CrSDKInterface::CrSDKInterface(){
 
     // Optionally initialize the vector elements here
-    cameraModes.resize(4); // Allocate space for 4 elements
+    cameraModes.resize(MAX_CAMERAS); // Allocate space for 4 elements
 }
 
 // CrSDKInterface::~CrSDKInterface() {
@@ -149,12 +149,9 @@ bool CrSDKInterface::enumerateCameraDevices(){
     spdlog::info("Camera enumeration successful. {} detected.", ncams);
 
     // Assuming two cameras are connected, create objects for both
-    if (ncams < NUM_CAMERAS)
+    if (ncams < MAX_CAMERAS)
     {
-        cli::tout << "Expected " << NUM_CAMERAS << " cameras, found " << ncams << ". Exiting.\n";
-        // camera_list->Release();
-        // SDK::Release();
-        // return false;
+        spdlog::warn("Expected {} cameras, found {}.", MAX_CAMERAS, ncams);
     }
 
     typedef std::shared_ptr<cli::CameraDevice> CameraDevicePtr;
@@ -169,7 +166,7 @@ bool CrSDKInterface::connectToCameras(){
     try
     {
         spdlog::info("Connecting to both cameras...");
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+        for (CrInt32u i = 0; i < camera_list->GetCount(); ++i)
         {
             auto *camera_info = camera_list->GetCameraObjectInfo(i);
             spdlog::info("  - Creating object for camera {}", i + 1);
@@ -177,7 +174,7 @@ bool CrSDKInterface::connectToCameras(){
             cameraList.push_back(camera);
         }
 
-        for (CrInt32u i = 0; i < NUM_CAMERAS; ++i)
+        for (CrInt32u i = 0; i < cameraList.size(); ++i)
         {
             // Connect to the camera in Remote Control Mode
             cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
@@ -343,7 +340,7 @@ bool CrSDKInterface::getCamerasMode(){
     try
     {
         // Get information about all cameras mode
-        for(CrInt32u i = 0; i < NUM_CAMERAS; ++i){
+        for(CrInt32u i = 0; i < cameraList.size(); ++i){
             cameraList[i]->get_exposure_program_mode(cameraModes[i]);
             if(!cameraModes[i].empty())
             {

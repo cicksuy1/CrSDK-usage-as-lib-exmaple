@@ -23,7 +23,6 @@
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
-#define NUM_CAMERAS 1
 #define HOST "127.0.0.1"
 #define PORT 8085
 
@@ -177,20 +176,95 @@ std::string getZeroTierIP()
     }
 }
 
+/**
+ * @brief Validates an IPv4 address using regular expressions.
+ *
+ * @param ipAddress The IP address to validate.
+ * @return True if the IP address is valid, false otherwise.
+ */
+bool isValidIPAddress(const std::string &ipAddress)
+{
+    // Regular expression to validate an IPv4 address
+    std::regex ipAddressRegex("^\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b$");
+    return std::regex_match(ipAddress, ipAddressRegex);
+}
+
+/**
+ * @brief Reads the IP address from a file.
+ *
+ * @param filePath The path to the file containing the IP address.
+ * @return The IP address read from the file.
+ * @throws std::runtime_error if there is an error opening the file.
+ */
+std::string readIPAddressFromFile(const std::string &filePath)
+{
+    std::ifstream file(filePath);
+    std::string ipAddress;
+
+    if (file.is_open())
+    {
+        // Read the file line by line and append to the ipAddress string
+        std::string line;
+        while (std::getline(file, line))
+        {
+            ipAddress += line;
+        }
+        // Remove trailing newline characters, if any
+        size_t lastNonSpace = ipAddress.find_last_not_of(" \t\r\n");
+        if (lastNonSpace != std::string::npos)
+        {
+            ipAddress = ipAddress.substr(0, lastNonSpace + 1);
+        }
+    }
+    else
+    {
+      return ""; // Return empty string if no matching IP found
+    }
+
+    return ipAddress;
+}
+
 int main()
 {
     std::string host;
 
-    std::string ZeroTierIP = getZeroTierIP();
+    // // Read the IP address from the file
+    // #ifdef DEVELOPMENT_ENVIRONMENT
+    //         std::string ipAddress = readIPAddressFromFile("/home/nvidia/Projects/low-level-detection-embedded/config/config.txt"); // The path for the development version.
+    // #else
+    //         std::string ipAddress = readIPAddressFromFile("/lld_sw_v1.0.0/lld/config.txt"); // Fixed the path for the production version.
+    // #endif
 
-    if(!ZeroTierIP.empty())
+    std::string ipAddress = readIPAddressFromFile("/lld_sw_v1.0.0/lld/config.txt"); // Fixed the path for the production version.
+
+    if(!ipAddress.empty())
     {
-        spdlog::info("host: {}", ZeroTierIP);
-        host = ZeroTierIP;
+      // Validate the IP address
+      if (isValidIPAddress(ipAddress))
+      {
+        spdlog::info("The IP address from the file is valid: {}", ipAddress);
+        host = ipAddress;
+      }
+      else
+      {
+        spdlog::error("Invalid IP address in the file. Exiting the program. ipAddress : {}", ipAddress);
+        return EXIT_FAILURE; // Return error code
+      }
     }
-    else{
-        spdlog::warn("ZeroTier assigned IP address not found, The server will run on the localhost");
-        host = HOST;
+    else
+    {
+      spdlog::warn("Configuration file does not exist.");
+      std::string ZeroTierIP = getZeroTierIP();
+
+      if(!ZeroTierIP.empty())
+      {
+          spdlog::info("host: {}", ZeroTierIP);
+          host = ZeroTierIP;
+      }
+      else{
+          spdlog::warn("ZeroTier assigned IP address not found, The server will run on the localhost");
+          host = HOST;
+      }
     }
 
     CrSDKInterface *crsdk = new CrSDKInterface();

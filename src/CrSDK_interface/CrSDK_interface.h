@@ -17,7 +17,7 @@
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
-#define NUM_CAMERAS 1
+#define MAX_CAMERAS 2
 
 namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;
