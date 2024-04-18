@@ -8,6 +8,64 @@
 #include <fmt/format.h>
 
 
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+int get_pid_using_port(int port) {
+    std::string command = "lsof -t -i:" + std::to_string(port);
+    std::string output = exec(command.c_str());
+    if (!output.empty()) {
+        return std::stoi(output);  // Assuming the output is the PID
+    }
+    return -1;  // Indicate that no process was found
+}
+
+bool terminate_process(int pid) {
+    if (pid > 0) {
+        int status = kill(pid, SIGTERM);  // Send the SIGTERM signal
+        if (status == 0) {
+            spdlog::info("Successfully terminated process with PID {}", pid);
+            return true;
+        } else {
+            spdlog::error("Failed to terminate process with PID {}", pid);
+            return false;
+        }
+    }
+    spdlog::info("No process to terminate.");
+    return false;
+}
+
+bool is_port_available(int port) {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        spdlog::error("Failed to create socket");
+        return false;
+    }
+
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
+
+    int opt = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    bool available = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == 0;
+    close(sockfd);
+    return available;
+}
+
 // Constructor for Server class with basic HTTPS server parameters
 Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface) {
   setupRoutes();
@@ -51,110 +109,20 @@ void Server::setupRoutes()
 
 }
 
-std::vector<std::string> split(const std::string& str, char delimiter) {
-  std::vector<std::string> tokens;
-  std::string token;
-  std::istringstream stream(str);
-
-  while (std::getline(stream, token, delimiter)) {
-    tokens.push_back(token);
-  }
-
-  return tokens;
-}
-
-int Server::get_pid_using_port(unsigned short port) {
-   // Open file /proc/net/tcp
-   std::ifstream proc_net_tcp("/proc/net/tcp");
-   if (!proc_net_tcp.is_open()) {
-     return -1;
-   }
-
-   // Read each line in the file
-   std::string line;
-   while (std::getline(proc_net_tcp, line)) {
-     // look for lines starting with "LISTEN"
-     if (line.find("LISTEN") != std::string::npos) {
-       // Split the row by spaces
-       std::vector<std::string> tokens = split(line, ' ');
-
-       // Get the exit number from the fifth token
-       std::string port_str = tokens[4];
-       int port_num = std::stoi(port_str);
-
-       // If the port number matches, get the process ID from the first token
-       if (port_num == port) {
-         std::string pid_str = tokens[0];
-         int pid = std::stoi(pid_str);
-         return pid;
-       }
-     }
-   }
-
-   // No process found listening to port
-   return -1;
-}
-
-bool Server::isPortAvailable(unsigned short port) {
-    // Create a socket to test the port availability
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        throw std::runtime_error("Failed to create socket!");
-    }
-
-    // Bind the socket to the port
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-    int bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
-    close(sockfd); // Close the socket after binding
-
-    // if the port is busy
-    if (bind_result < 0) 
-    {
-        // Get the process ID (PID) of the mazy process
-        int pid = get_pid_using_port(port);
-        if (pid > 0) 
-        {
-            // Try to terminate the process
-            int kill_result = kill(pid, SIGTERM);
-            if (kill_result < 0) 
-            {
-                // Error in process summary
-                spdlog::error("Failed to terminate process listening on port {}: {}", port, pid);
-                return false;
-            } 
-            else 
-            {
-                // Wait for the process to finish
-                spdlog::info("Wait for the process to finish...");
-                waitpid(pid, NULL, 0); // Corrected function call (no arguments)               
-                
-                // Retry connecting to the port
-                bind_result = bind(sockfd, (sockaddr*)&addr, sizeof(addr));
-            }
-        } 
-        else 
-        {
-            // Error getting process ID
-            spdlog::error("Failed to get PID of process listening on port {}", port);
-            return false;
-        }
-   }
-
-}
-
 // Start the server
 void Server::run()
 {
     try
     {
         // // Check if the port is available
-        // if (!isPortAvailable(port_)) 
-        // {
-        //     throw std::runtime_error("Port " + std::to_string(port_) + " is not available!");
-        // }
+        int pid = get_pid_using_port(port_);
+        if (pid != -1) {
+            spdlog::info("Port {} is already in use by PID {}. Attempting to terminate.", port_, pid);
+            if (!terminate_process(pid)) {
+                spdlog::error("Could not terminate existing process. Server startup aborted.");
+                return;
+            }
+        }
 
         // Print a message to the console indicating the server address and port
         spdlog::info("The server runs at address: {}:{}", host_, port_ );
