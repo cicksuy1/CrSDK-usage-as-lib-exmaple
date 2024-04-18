@@ -64,6 +64,12 @@
         "bit": "cpp",
         "codecvt": "cpp",
         "condition_variable": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "any": "cpp",
+        "charconv": "cpp",
+        "csignal": "cpp",
+        "forward_list": "cpp",
+        "mutex": "cpp",
+        "valarray": "cpp"
     }
 }

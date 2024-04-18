@@ -22,21 +22,38 @@ CrSDKInterface::CrSDKInterface(){
 bool CrSDKInterface::disconnectToCameras(){
     try
     {
-        CameraDeviceList::const_iterator it = cameraList.begin();
-        for (std::int32_t j = 0; it != cameraList.end(); ++j, ++it) {
-            if ((*it)->is_connected()) {
-                spdlog::info("Initiate disconnect sequence.");
-                auto disconnect_status = (*it)->disconnect();
-                if (!disconnect_status) {
-                    // try again
-                    disconnect_status = (*it)->disconnect();
+        if(cameraList.size() > 0)
+        {
+            CameraDeviceList::const_iterator it = cameraList.begin();
+            for (std::int32_t i = 0; it != cameraList.end(); ++i, ++it) {
+                if ((*it)->is_connected()) {
+                    spdlog::info("Initiate disconnect sequence.");
+                    auto disconnect_status = (*it)->disconnect();
+                    if (!disconnect_status) {
+                        // try again
+                        disconnect_status = (*it)->disconnect();
+                    }
+                    if (!disconnect_status)
+                        spdlog::error("Disconnect failed to initiate.");
+                    else
+                        spdlog::info("Disconnect successfully initiated!");
+
+                    // (*it)->release();
                 }
-                if (!disconnect_status)
-                    spdlog::error("Disconnect failed to initiate.");
                 else
-                    spdlog::info("Disconnect successfully initiated!");
+                {
+                    spdlog::error("Disconnecting the camera {} is not possible because it is not connected.", i);
+                    return false;
+                }
+                
+               (*it)->release();
+
+                
             }
-            (*it)->release();
+        }
+        else
+        {
+            spdlog::error("Disconnecting the cameras is not possible because the cameraList is empty!");
         }
 
         // for (CrInt32u i = 0; i < cameraList.size(); ++i)
@@ -66,17 +83,19 @@ bool CrSDKInterface::disconnectToCameras(){
 bool CrSDKInterface::releaseCameraList(){
     try
     {
-        if (camera_list != nullptr) 
-        {
-            camera_list->Release(); // Release the camera list object
-        }        
-        else
-        {
-            spdlog::warn("The camera list object cannot be freed because it has not been allocated yet");
-        }
-        spdlog::info("The release the camera list object was successfully.");
+        // if (camera_list != nullptr) 
+        // {
+        //     camera_list->Release(); // Release the camera list object
+        //     spdlog::info("The release the camera_list object was successfully.");
+        // }        
+        // else
+        // {
+        //     spdlog::warn("The camera_list object cannot be freed because it has not been allocated yet");
+        // }
 
         cameraList.clear(); // Clear the list after releasing resources
+        spdlog::info("the cleaning of the cameraList object was successfully.");
+
 
         return true;
     }
@@ -117,10 +136,10 @@ bool CrSDKInterface::initializeSDK(){
     int patch = (version & 0x0000FF00) >> 8;
     // int reserved = (version & 0x000000FF);
 
-    spdlog::info("Remote SDK version: ");
-    cli::tout << major << "." << minor << "." << std::setfill(TEXT('0')) << std::setw(2) << patch << "\n";
+    // spdlog::info("Remote SDK version: ");
+    // cli::tout << major << "." << minor << "." << std::setfill(TEXT('0')) << std::setw(2) << patch << "\n";
 
-    spdlog::info("Initialize Remote SDK...\n");
+    spdlog::info("Initialize Remote SDK...");
     // spdlog::info("Working directory: {}", fs::current_path());
 
     auto init_success = SDK::Init();
@@ -181,19 +200,17 @@ bool CrSDKInterface::connectToCameras(){
         }
         sleep(1);
 
-        bool allConnected = true;
+        if (camera_list != nullptr) 
+        {
+            camera_list->Release(); // Release the camera list object
+        }        
+        else
+        {
+            spdlog::warn("The camera_list object cannot be freed because it has not been allocated yet");
+        }
+        spdlog::info("The release the camera_list object was successfully.");
 
-        // for (auto& cameraDevicePtr : cameraList) 
-        // {
-        //     if (cameraDevicePtr) 
-        //     {
-        //         const std::atomic<bool>& connected = cameraDevicePtr->getM_connected();
-        //         if (!connected) {
-        //             allConnected = false;
-        //             break;
-        //         }
-        //     }
-        // }
+        bool allConnected = true;
 
         for (auto& camera : cameraList) 
         {

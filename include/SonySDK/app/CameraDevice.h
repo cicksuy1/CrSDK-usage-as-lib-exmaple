@@ -20,6 +20,8 @@ typedef int errno_t;
 #include "PropertyValueTable.h"
 #include "Text.h"
 #include "MessageDefine.h"
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
 
 namespace cli
 {
