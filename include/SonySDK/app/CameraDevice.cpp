@@ -261,7 +261,7 @@ bool CameraDevice::disconnect()
 
 bool CameraDevice::release()
 {
-    tout << "Release camera...\n";
+    spdlog::info("Release camera...");
     auto finalize_status = SDK::ReleaseDevice(m_device_handle);
     m_device_handle = 0; // clear
     if (CR_FAILED(finalize_status)) {
@@ -460,7 +460,7 @@ void CameraDevice::get_exposure_program_mode( cli::text& cameraMode)
 {
     load_properties();
     cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
-    tout << "Exposure Program Mode: " << cameraMode << '\n';
+    // tout << "Exposure Program Mode: " << cameraMode << '\n';
 
     // Update the flag of the camera mode
     if(cameraMode == "Movie_P")
@@ -4742,7 +4742,7 @@ void CameraDevice::OnError(CrInt32u error)
         tout << m_info->GetModel() << " (" << id.data() << ")" << std::endl;
         if (SDK::CrError_Connect_TimeOut == error) {
             // append 1 line
-            tout << "Please input '0' after Connect camera" << std::endl;
+            // tout << "Please input '0' after Connect camera" << std::endl;
             return;
         }
         if (SDK::CrError_Connect_Disconnected == error)
