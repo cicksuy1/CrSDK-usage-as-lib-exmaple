@@ -150,73 +150,159 @@ bool CameraDevice::getfingerprint()
     return false;
 }
 
-bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect)
-{
+// bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect)
+// {
+//     const char* inputId = "admin";
+//     char inputPassword[32] = { 0 };
+//     if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport())
+//     {
+//         if (!is_getfingerprint())
+//         {
+//             bool resFp = getfingerprint();
+//             if (resFp)
+//             {
+//                 tout << "fingerprint: \n" << m_fingerprint.c_str() << std::endl;
+//                 tout << std::endl << "Are you sure you want to continue connecting ? (y/n) > ";
+//                 text yesno;
+//                 std::getline(cli::tin, yesno);
+//                 if (yesno != TEXT("y"))
+//                 {
+//                     m_fingerprint.clear();
+//                     return false;
+//                 }
+//             }
+//         }
+//         if (!is_setpassword())
+//         {
+//             cli::tout << "Please SSH password > ";
+//             cli::text userPw;
+ 
+//             // Stores the password
+//             char maskPw = '*';
+//             char ch_ipt = {};
+
+//             // Until condition is true
+//             while (true) {
+
+// #if defined (_WIN32) || defined(_WIN64)
+//                 ch_ipt = _getch();
+// #else
+//                 ch_ipt = getch_for_Nix();
+// #endif
+
+//                 // if the ch_ipt
+//                 if (ch_ipt == Password_Key_Enter) {
+//                     tout << std::endl;
+//                     break;
+//                 }
+//                 else if (ch_ipt == Password_Key_Back
+//                     && userPw.length() != 0) {
+//                     userPw.pop_back();
+
+//                     // Cout statement is very
+//                     // important as it will erase
+//                     // previously printed character
+//                     tout << "\b \b";
+
+//                     continue;
+//                 }
+
+//                 // Without using this, program
+//                 // will crash as \b can't be
+//                 // print in beginning of line
+//                 else if (ch_ipt == Password_Key_Back
+//                     && userPw.length() == 0) {
+//                     continue;
+//                 }
+
+//                 userPw.push_back(ch_ipt);
+//                 tout << maskPw;
+//             }
+
+// #if defined(_WIN32) || (_WIN64)
+//             mbstate_t mbstate;
+//             size_t retPw;
+//             memset(&mbstate, 0, sizeof(mbstate_t));
+//             const wchar_t* wcsInStr = userPw.c_str();
+//             errno_t erno = wcsrtombs_s(&retPw, inputPassword, &wcsInStr, 32, &mbstate);
+// #else
+//             strncpy(inputPassword, (const char*)userPw.c_str(), userPw.size());
+// #endif
+//             m_userPassword = std::string(inputPassword, userPw.size());
+
+//         }
+//     }
+
+//     m_spontaneous_disconnection = false;
+//     auto connect_status = SDK::Connect(m_info, this, &m_device_handle, openMode, reconnect, inputId, m_userPassword.c_str(), m_fingerprint.c_str(), (CrInt32u)m_fingerprint.size());
+//     if (CR_FAILED(connect_status)) {
+//         text id(this->get_id());
+//         tout << std::endl << "Failed to connect: 0x" << std::hex << connect_status << std::dec << ". " << m_info->GetModel() << " (" << id.data() << ")\n";
+//         m_userPassword.clear();
+//         return false;
+//     }
+//     set_save_info();
+//     return true;
+// }
+
+bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect) {
     const char* inputId = "admin";
     char inputPassword[32] = { 0 };
-    if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport())
-    {
-        if (!is_getfingerprint())
-        {
+
+    // Check if SSH support is enabled
+    if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport()) {
+        std::cout << "SSH support is ON." << std::endl;
+
+        // Get the fingerprint
+        if (!is_getfingerprint()) {
             bool resFp = getfingerprint();
-            if (resFp)
-            {
-                tout << "fingerprint: \n" << m_fingerprint.c_str() << std::endl;
-                tout << std::endl << "Are you sure you want to continue connecting ? (y/n) > ";
-                text yesno;
-                std::getline(cli::tin, yesno);
-                if (yesno != TEXT("y"))
-                {
+            if (resFp) {
+                std::cout << "Fingerprint retrieved: " << m_fingerprint << std::endl;
+                std::cout << "Prompting user to continue..." << std::endl;
+
+                std::string yesno;
+                std::cout << "Are you sure you want to continue connecting? (y/n) > ";
+                std::getline(std::cin, yesno);
+                if (yesno != "y") {
+                    std::cout << "Connection aborted by user." << std::endl;
                     m_fingerprint.clear();
                     return false;
                 }
+            } else {
+                std::cout << "Failed to retrieve fingerprint." << std::endl;
+                return false;
             }
         }
-        if (!is_setpassword())
-        {
-            cli::tout << "Please SSH password > ";
-            cli::text userPw;
- 
-            // Stores the password
+
+        // Get the SSH password
+        if (!is_setpassword()) {
+            std::cout << "Please enter SSH password > ";
+            std::string userPw;
+
+            // Input handling for password with masking
             char maskPw = '*';
             char ch_ipt = {};
 
-            // Until condition is true
             while (true) {
-
 #if defined (_WIN32) || defined(_WIN64)
                 ch_ipt = _getch();
 #else
-                ch_ipt = getch_for_Nix();
+                ch_ipt = getch_for_Nix();  // Custom function for non-Windows platforms
 #endif
 
-                // if the ch_ipt
-                if (ch_ipt == Password_Key_Enter) {
-                    tout << std::endl;
+                if (ch_ipt == '\n' || ch_ipt == '\r') {
+                    std::cout << std::endl;
                     break;
-                }
-                else if (ch_ipt == Password_Key_Back
-                    && userPw.length() != 0) {
+                } else if (ch_ipt == '\b' && !userPw.empty()) {
                     userPw.pop_back();
-
-                    // Cout statement is very
-                    // important as it will erase
-                    // previously printed character
-                    tout << "\b \b";
-
+                    std::cout << "\b \b";
                     continue;
-                }
-
-                // Without using this, program
-                // will crash as \b can't be
-                // print in beginning of line
-                else if (ch_ipt == Password_Key_Back
-                    && userPw.length() == 0) {
+                } else if (ch_ipt == '\b' && userPw.empty()) {
                     continue;
                 }
 
                 userPw.push_back(ch_ipt);
-                tout << maskPw;
+                std::cout << maskPw;
             }
 
 #if defined(_WIN32) || (_WIN64)
@@ -229,20 +315,33 @@ bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnec
             strncpy(inputPassword, (const char*)userPw.c_str(), userPw.size());
 #endif
             m_userPassword = std::string(inputPassword, userPw.size());
-
+            std::cout << "Password entered." << std::endl;
         }
     }
 
     m_spontaneous_disconnection = false;
-    auto connect_status = SDK::Connect(m_info, this, &m_device_handle, openMode, reconnect, inputId, m_userPassword.c_str(), m_fingerprint.c_str(), (CrInt32u)m_fingerprint.size());
+
+    // Attempt to connect
+    auto connect_status = SDK::Connect(
+        m_info, this, &m_device_handle, openMode, reconnect, 
+        inputId, m_userPassword.c_str(), m_fingerprint.c_str(), 
+        (CrInt32u)m_fingerprint.size()
+    );
+
+    // Check if the connection failed
     if (CR_FAILED(connect_status)) {
-        text id(this->get_id());
-        tout << std::endl << "Failed to connect: 0x" << std::hex << connect_status << std::dec << ". " << m_info->GetModel() << " (" << id.data() << ")\n";
+        std::cout << "Failed to connect. Error code: 0x" << std::hex << connect_status << std::dec 
+                  << ". Model: " << m_info->GetModel() << std::endl;
+
         m_userPassword.clear();
         return false;
     }
-    set_save_info();
-    return true;
+
+    std::cout << "Connection successful." << std::endl;
+
+    // set_save_info();  // Additional configuration or state-setting
+
+    return true;  // Connection was successful
 }
 
 bool CameraDevice::disconnect()

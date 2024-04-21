@@ -19,63 +19,121 @@ CrSDKInterface::CrSDKInterface(){
 //     SDK::Release(); // Release the Camera Remote SDK resources
 // }
 
-bool CrSDKInterface::disconnectToCameras(){
-    try
-    {
-        if(cameraList.size() > 0)
-        {
-            CameraDeviceList::const_iterator it = cameraList.begin();
-            for (std::int32_t i = 0; it != cameraList.end(); ++i, ++it) {
-                if ((*it)->is_connected()) {
-                    spdlog::info("Initiate disconnect sequence.");
-                    auto disconnect_status = (*it)->disconnect();
-                    if (!disconnect_status) {
-                        // try again
-                        disconnect_status = (*it)->disconnect();
-                    }
-                    if (!disconnect_status)
-                        spdlog::error("Disconnect failed to initiate.");
-                    else
-                        spdlog::info("Disconnect successfully initiated!");
+// bool CrSDKInterface::disconnectToCameras(){
+//     try
+//     {
+//         if(cameraList.size() > 0)
+//         {
+//             CameraDeviceList::const_iterator it = cameraList.begin();
+//             for (std::int32_t i = 0; it != cameraList.end(); ++i, ++it) {
+//                 if ((*it)->is_connected()) {
+//                     spdlog::info("Initiate disconnect sequence.");
+//                     auto disconnect_status = (*it)->disconnect();
+//                     if (!disconnect_status) {
+//                         // try again
+//                         disconnect_status = (*it)->disconnect();
+//                     }
+//                     if (!disconnect_status)
+//                         spdlog::error("Disconnect failed to initiate.");
+//                     else
+//                         spdlog::info("Disconnect successfully initiated!");            
+//                 }
+//                 else
+//                 {
+//                     spdlog::warn("Disconnecting the camera {} is not possible because it is not connected.", i);
+//                 }
 
-                    // (*it)->release();
-                }
-                else
+//                 if((*it) != nullptr)
+//                 {
+//                     try {
+//                         std::future<void> future = std::async(std::launch::async, [&]() {
+//                             (*it)->release(); // Release the camera device.
+//                         });
+
+//                         // Wait for the camera device release to complete, with a timeout
+//                         auto status = future.wait_for(std::chrono::seconds(3));  // Adjust the timeout as needed
+
+//                         if (status == std::future_status::timeout) {
+//                             spdlog::error("Timeout while releasing camera device resources.");
+//                             return false;  // Operation timed out
+//                         }
+
+//                         spdlog::info("The release of the camera device resources was successful.");
+//                         return true;
+//                     } catch (const std::exception& e) {
+//                         spdlog::error("An error occurred while trying to release the camera device resources: {}", e.what());
+//                         return false;
+//                     }
+//                 }
+//                 else
+//                 {
+//                     spdlog::warn("Releaseing the it {} is not possible because it is nullptr.", i);
+//                 }    
+//             }
+//         }
+//         else
+//         {
+//             spdlog::error("Disconnecting the cameras is not possible because the cameraList is empty!");
+//         }
+
+//         // for (CrInt32u i = 0; i < cameraList.size(); ++i)
+//         // {
+//         //     if(cameraList[i]->is_connected())
+//         //     {
+//         //         // Disconnect from the camera and release resources before exiting
+//         //         cameraList[i]->disconnect();
+//         //         spdlog::info("Disconnect from the camera {}.", i);
+//         //     }
+//         //     else
+//         //     {
+//         //         spdlog::error("Disconnecting the camera {} is not possible because it is not connected.", i);
+//         //     }
+//         // }
+
+//         spdlog::info("The disconnect from the all cameras was successfully.");
+//         return true;
+//     }
+//     catch(const std::exception& e)
+//     {
+//         spdlog::error("An error occurred while trying to disconnect from the cameras: {}", e.what());
+//         return false;
+//     }
+// }
+
+bool CrSDKInterface::disconnectToCameras() {
+    try {
+        if (cameraList.empty()) {
+            spdlog::warn("Camera list is empty. No cameras to disconnect.");
+            return true;
+        }
+
+        for (auto &camera : cameraList) {
+            if (camera && camera->is_connected()) {
+                auto disconnect_status = camera->disconnect();
+                if (!disconnect_status) 
                 {
-                    spdlog::error("Disconnecting the camera {} is not possible because it is not connected.", i);
+                    spdlog::error("Failed to disconnect camera.");
                     return false;
                 }
-                
-               (*it)->release();
 
-                
+                auto future = std::async(std::launch::async, [&]() {
+                    camera->release();  // Release the camera device
+                });
+
+                auto status = future.wait_for(std::chrono::seconds(3));  // Timeout for resource release
+
+                if (status == std::future_status::timeout) {
+                    spdlog::error("Timeout while releasing camera device resources.");
+                    return false;
+                }
             }
         }
-        else
-        {
-            spdlog::error("Disconnecting the cameras is not possible because the cameraList is empty!");
-        }
 
-        // for (CrInt32u i = 0; i < cameraList.size(); ++i)
-        // {
-        //     if(cameraList[i]->is_connected())
-        //     {
-        //         // Disconnect from the camera and release resources before exiting
-        //         cameraList[i]->disconnect();
-        //         spdlog::info("Disconnect from the camera {}.", i);
-        //     }
-        //     else
-        //     {
-        //         spdlog::error("Disconnecting the camera {} is not possible because it is not connected.", i);
-        //     }
-        // }
-
-        spdlog::info("The disconnect from the all cameras was successfully.");
+        spdlog::info("Successfully disconnected all cameras.");
         return true;
-    }
-    catch(const std::exception& e)
-    {
-        spdlog::error("An error occurred while trying to disconnect from the cameras: {}", e.what());
+
+    } catch (const std::exception &e) {
+        spdlog::error("Error while disconnecting cameras: {}", e.what());
         return false;
     }
 }
@@ -83,20 +141,9 @@ bool CrSDKInterface::disconnectToCameras(){
 bool CrSDKInterface::releaseCameraList(){
     try
     {
-        // if (camera_list != nullptr) 
-        // {
-        //     camera_list->Release(); // Release the camera list object
-        //     spdlog::info("The release the camera_list object was successfully.");
-        // }        
-        // else
-        // {
-        //     spdlog::warn("The camera_list object cannot be freed because it has not been allocated yet");
-        // }
-
+        cameraModes.clear();
         cameraList.clear(); // Clear the list after releasing resources
         spdlog::info("the cleaning of the cameraList object was successfully.");
-
-
         return true;
     }
     catch(const std::exception& e)
@@ -106,17 +153,39 @@ bool CrSDKInterface::releaseCameraList(){
     }
 }
 
-bool CrSDKInterface::releaseCameraRemoteSDK(){
-    try
-    {
-        sleep(1);
-        SDK::Release(); // Release the Camera Remote SDK resources
-        spdlog::info("The release of the camera remote SDK resources was successful.");
+// bool CrSDKInterface::releaseCameraRemoteSDK(){
+//     try
+//     {
+//         sleep(1);
+//         SDK::Release(); // Release the Camera Remote SDK resources
+//         spdlog::info("The release of the camera remote SDK resources was successful.");
+//         return true;
+//     }
+//     catch(const std::exception& e)
+//     {
+//         spdlog::error("An error occurred while trying to release of the camera remote SDK resources: {}", e.what());
+//         return false;
+//     }
+// }
+
+bool CrSDKInterface::releaseCameraRemoteSDK() {
+    try {
+        std::future<void> future = std::async(std::launch::async, [&]() {
+            SDK::Release(); // Release the Camera Remote SDK resources
+        });
+
+        // Wait for the SDK release to complete, with a timeout
+        auto status = future.wait_for(std::chrono::seconds(3));  // Adjust the timeout as needed
+
+        if (status == std::future_status::timeout) {
+            spdlog::error("Timeout while releasing Camera Remote SDK resources.");
+            return false;  // Operation timed out
+        }
+
+        spdlog::info("The release of the Camera Remote SDK resources was successful.");
         return true;
-    }
-    catch(const std::exception& e)
-    {
-        spdlog::error("An error occurred while trying to release of the camera remote SDK resources: {}", e.what());
+    } catch (const std::exception& e) {
+        spdlog::error("An error occurred while trying to release the Camera Remote SDK resources: {}", e.what());
         return false;
     }
 }
@@ -188,15 +257,22 @@ bool CrSDKInterface::connectToCameras(){
         for (CrInt32u i = 0; i < camera_list->GetCount(); ++i)
         {
             auto *camera_info = camera_list->GetCameraObjectInfo(i);
-            spdlog::info("  - Creating object for camera {}", i + 1);
+            spdlog::info("  - Creating object for camera {}...", i + 1);
             CameraDevicePtr camera = CameraDevicePtr(new cli::CameraDevice(i + 1, camera_info));
             cameraList.push_back(camera);
         }
 
         for (CrInt32u i = 0; i < cameraList.size(); ++i)
         {
-            // Connect to the camera in Remote Control Mode
-            cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
+            if (cameraList[i]->is_connected()) 
+            {
+                spdlog::warn("Please disconnect");
+            }
+            else 
+            {
+                // Connect to the camera in Remote Control Mode
+                cameraList[i]->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
+            }  
         }
         sleep(1);
 

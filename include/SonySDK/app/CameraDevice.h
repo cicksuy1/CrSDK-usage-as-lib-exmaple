@@ -22,6 +22,8 @@ typedef int errno_t;
 #include "MessageDefine.h"
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
+#include <iomanip>  // For formatted output
+#include <stdexcept>  // For exception handling
 
 namespace cli
 {

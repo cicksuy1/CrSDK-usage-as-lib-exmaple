@@ -10,6 +10,8 @@
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <unistd.h>
+#include <future>
+#include <chrono>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"

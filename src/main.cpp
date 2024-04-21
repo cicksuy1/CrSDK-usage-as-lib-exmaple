@@ -29,12 +29,11 @@
 using namespace std;
 
 std::atomic<bool> stopRequested(false);
+std::mutex resourceMutex;  // For thread safety during resource cleanup
 
 void signalHandler(int sig) {
   if (sig == SIGINT) {
-    // Print a message when the program stops
     spdlog::info("Program stopped..."); 
-    
     stopRequested.store(true);
   }
 }
@@ -226,14 +225,13 @@ std::string readIPAddressFromFile(const std::string &filePath)
 
 int main()
 {
-    std::string host;
+    // Register signal handler for Ctrl+C
+    struct sigaction sa;
+    sa.sa_handler = signalHandler;
+    sigfillset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, NULL);
 
-    // // Read the IP address from the file
-    // #ifdef DEVELOPMENT_ENVIRONMENT
-    //         std::string ipAddress = readIPAddressFromFile("/home/nvidia/Projects/low-level-detection-embedded/config/config.txt"); // The path for the development version.
-    // #else
-    //         std::string ipAddress = readIPAddressFromFile("/lld_sw_v1.0.0/lld/config.txt"); // Fixed the path for the production version.
-    // #endif
+    std::string host;
 
     std::string ipAddress = readIPAddressFromFile("/lld_sw_v1.0.0/lld/config.txt"); // Fixed the path for the production version.
 
@@ -314,7 +312,6 @@ int main()
         spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
 
         return EXIT_FAILURE;
-
     }
 
     // Get information about all cameras mode(auto or manual).
@@ -345,34 +342,30 @@ int main()
     // Run the server in a separate thread
     std::thread serverThread(&Server::run, &server);
 
-    // Register signal handler for Ctrl+C
-    struct sigaction sa;
-    sa.sa_handler = signalHandler;
-    sigfillset(&sa.sa_mask);
-    sigaction(SIGINT, &sa, NULL);
-
     int i = 0;
 
     // Check for stop request periodically or in a loop
     while (!stopRequested.load()) 
     {
-      if(i >= 50){
-        for(CrInt32u i = 0; i < crsdk->cameraList.size(); ++i)
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      i++;
+      if(i >= 500){
+        for(CrInt32u j = 0; j < crsdk->cameraList.size(); ++j)
         {
-          if(crsdk->cameraList[i]->is_connected())
+          if(crsdk->cameraList[j]->is_connected())
           {
-            spdlog::info("Camera number {} is connected", i);
+            spdlog::info("Camera number {} is connected", j);
           }
           else 
           {
-            spdlog::warn("Camera number {} is not connected!", i);
+            spdlog::warn("Camera number {} is not connected!", j);
           }
         }
         spdlog::info("The server is running");
         i = 0;
       }
       
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
       i++;
     }
 
@@ -382,16 +375,21 @@ int main()
     // Wait for the server thread to finish
     serverThread.join();  // Wait for completion before continuing
 
-    // Release resources acquired in the constructor or during object lifetime
-    crsdk->disconnectToCameras();
+    {
+        std::lock_guard<std::mutex> lock(resourceMutex);  // Ensure thread safety during cleanup
+        
+        // Release resources acquired in the constructor or during object lifetime
+        crsdk->disconnectToCameras();
 
-    // Release resources acquired in the constructor or during object lifetime.
-    crsdk->releaseCameraList();
+        // Release resources acquired in the constructor or during object lifetime.
+        crsdk->releaseCameraList();
 
-    // Releases resources associated with the Camera Remote SDK.
-    crsdk->releaseCameraRemoteSDK();
-
+        // Releases resources associated with the Camera Remote SDK.
+        crsdk->releaseCameraRemoteSDK();
+    }
+    
     delete crsdk;
+
     spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
 
     // Print a message when the program stops
