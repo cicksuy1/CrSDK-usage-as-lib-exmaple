@@ -298,8 +298,6 @@ int main()
     // Creating a connection to the cameras after enumerate Camera Devices.
     bool connectSuccess = crsdk->connectToCameras();
 
-    sleep(2);
-
     if(!connectSuccess)
     {
         // Handle connection failure
@@ -330,7 +328,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    sleep(1);
+    // sleep(1);
 
     // Configure server parameters
     const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";

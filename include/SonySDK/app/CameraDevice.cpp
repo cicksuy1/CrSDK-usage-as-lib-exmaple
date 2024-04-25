@@ -337,9 +337,8 @@ bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnec
         return false;
     }
 
-    std::cout << "Connection successful." << std::endl;
-
-    // set_save_info();  // Additional configuration or state-setting
+    set_save_info();  // Additional configuration or state-setting
+    spdlog::info("Connection successful.");
 
     return true;  // Connection was successful
 }
