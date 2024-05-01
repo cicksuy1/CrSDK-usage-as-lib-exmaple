@@ -184,6 +184,27 @@ else()
     # Add error handling here if Libevent is required
 endif()
 
+# For JetsonGPIO
+message(STATUS "\nSearching for JetsonGPIO...")
+find_package(JetsonGPIO REQUIRED)
+if(JetsonGPIO_FOUND)
+    target_link_libraries(${PROJECT_N} PUBLIC JetsonGPIO::JetsonGPIO)
+    message(STATUS "JetsonGPIO found!")
+else()
+    message(STATUS "JetsonGPIO not found, attempting to install...")
+    set(EXTERNAL_PROJECT_NAME JetsonGPIO)
+    set(EXTERNAL_PROJECT_URL https://github.com/pjueon/JetsonGPIO.git)
+    # Define the project and its properties
+    ExternalProject_Add(
+        JetsonGPIO
+        PREFIX ${DEPS_DIR}/${EXTERNAL_PROJECT_NAME}
+        GIT_REPOSITORY ${EXTERNAL_PROJECT_URL}
+        GIT_TAG v1.13.0 # Specify the desired release tag
+        BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- -j12  # This will build with parallel jobs
+        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}  # Install to default CMake install path
+    )
+endif()
+
 add_compile_options(-fsigned-char)
 target_link_libraries(${PROJECT_N} PUBLIC SonySDKLib)
 

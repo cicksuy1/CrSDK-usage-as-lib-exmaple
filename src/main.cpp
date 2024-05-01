@@ -20,11 +20,13 @@
 
 #include "CrSDK_interface/CrSDK_interface.h"
 #include "https_server/https_server.h"
+#include "gpioPin/gpioPin.h"
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
 #define HOST "127.0.0.1"
 #define PORT 8085
+#define DEFAULT_PIN 16
 
 using namespace std;
 
@@ -231,6 +233,9 @@ int main()
     sigfillset(&sa.sa_mask);
     sigaction(SIGINT, &sa, NULL);
 
+    // Create an instance of the GpioPin class
+    GpioPin *gpioPin = new GpioPin(DEFAULT_PIN);
+
     std::string host;
 
     std::string ipAddress = readIPAddressFromFile("/lld_sw_v1.0.0/lld/config.txt"); // Fixed the path for the production version.
@@ -337,6 +342,11 @@ int main()
     // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
     Server server(host, PORT, cert_file, key_file, crsdk);
 
+    if(gpioPin)
+    {
+      server.setGpioPin(gpioPin);
+    }
+
     // Run the server in a separate thread
     std::thread serverThread(&Server::run, &server);
 
@@ -387,6 +397,7 @@ int main()
     }
     
     delete crsdk;
+    delete gpioPin;
 
     spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
 

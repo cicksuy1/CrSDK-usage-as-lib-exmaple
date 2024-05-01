@@ -67,14 +67,20 @@ bool is_port_available(int port) {
 }
 
 // Constructor for Server class with basic HTTPS server parameters
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface) {
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface) 
+{
+  setupRoutes();
+}
+
+// Constructor for Server class with basic HTTPS server parameters with gpio
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, GpioPin* gpioP, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), gpioPin(gpioP), crsdkInterface_(crsdkInterface) 
+{
   setupRoutes();
 }
 
 // Setup HTTP routes
 void Server::setupRoutes()
 {
-
     server.Get("/", [this](const httplib::Request &req, httplib::Response &res){
         handleIndicator(req, res); 
     });
@@ -106,7 +112,11 @@ void Server::setupRoutes()
     server.Get("/upload_camera_setting", [this](const httplib::Request &req, httplib::Response &res){ 
         handleUploadCameraSetting(req, res); 
     });
+}
 
+void Server::setGpioPin(GpioPin *gpioPin)
+{
+    this->gpioPin = gpioPin;
 }
 
 // Start the server

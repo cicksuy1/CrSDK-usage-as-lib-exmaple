@@ -4,7 +4,6 @@
  *
  * The Server class provides basic HTTP server functionality and allows association
  */
-#pragma once
 
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include <httplib.h>
@@ -30,6 +29,7 @@
 #include <cstring>
 
 #include "../CrSDK_interface/CrSDK_interface.h"
+#include "../gpioPin/gpioPin.h"
 
 using json = nlohmann::json;
 
@@ -45,6 +45,7 @@ using json = nlohmann::json;
 class Server 
 {
 public:
+
     /**
      * @brief Constructs a Server object with basic HTTP server parameters.
      * @param host The host address on which the server will listen.
@@ -54,7 +55,20 @@ public:
      * @param crsdkInterface instance of CrSDKInterface class.
      */
     Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface = nullptr);
-    // Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::shared_ptr<CrSDKInterface> crsdkInterface);
+
+
+    /**
+     * @brief Constructs a Server object with basic HTTP server parameters.
+     * @param host The host address on which the server will listen.
+     * @param port The port on which the server will listen.
+     * @param cert_file The path to the SSL certificate file.
+     * @param key_file The path to the SSL key file.
+     * @param gpioP An instance of GPIO pin to associate with the server.
+     * @param crsdkInterface instance of CrSDKInterface class.
+     */
+    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, GpioPin *gpioP = nullptr, CrSDKInterface *crsdkInterface = nullptr);
+
+    void setGpioPin(GpioPin *gpioPin);
 
     /**
      * @brief Start the HTTP server to listen for incoming requests.
@@ -87,6 +101,7 @@ private:
     CrSDKInterface *crsdkInterface_;                            ///< Add an instance of CrSDKInterface
     std::thread monitoringThread;                               ///< Thread object for monitoring
     std::atomic<bool> stopRequested{false};                     ///< A flag for stopping the server thread
+    GpioPin *gpioPin;                                           ///< Declaration of GpioPin instance
 
     /**
      * @brief Set up HTTP routes for the server.
