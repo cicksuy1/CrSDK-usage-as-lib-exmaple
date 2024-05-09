@@ -38,16 +38,16 @@ public:
    */
   ~GpioPin();
 
-    /**
-     * @brief Performs an action on a GPIO pin after a 20-second delay.
-     *
-     * This function takes an integer representing the GPIO pin number and performs
-     * an asynchronous operation to set the pin as output after a 20-second delay.
-     * The main program's execution continues without being blocked by the delay.
-     *
-     * @param pin The integer representing the GPIO pin number.
-    */
-    void delayedAction(int pin);
+  /**
+   * @brief Performs an action on a GPIO pin after a 20-second delay.
+   *
+   * This function takes an integer representing the GPIO pin number and performs
+   * an asynchronous operation to set the pin as output after a 20-second delay.
+   * The main program's execution continues without being blocked by the delay.
+   *
+   * @param pin The integer representing the GPIO pin number.
+  */
+  void delayedAction(int pin);
 
   /**
    * @brief Sets the GPIO pin numbering mode.
@@ -108,6 +108,7 @@ public:
 
 private:
   int pin; // The physical GPIO pin number
+ 
 };
 
 #endif //

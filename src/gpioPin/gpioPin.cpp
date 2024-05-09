@@ -1,6 +1,7 @@
 #include "gpioPin.h"
 
-std::string getModeString(GPIO::NumberingModes mode) {
+std::string getModeString(GPIO::NumberingModes mode) 
+{
     switch (mode) {
         case GPIO::BOARD:
             return "BOARD";
@@ -15,35 +16,38 @@ std::string getModeString(GPIO::NumberingModes mode) {
     }
 }
 
-GpioPin::GpioPin(int pin)
-{
+GpioPin::GpioPin(int pin) {
     this->pin = pin;
 
-    //To disable warnings
-    GPIO::setwarnings(false); 
+    try {
+        // Disable warnings
+        GPIO::setwarnings(false);
 
-    // To check which mode has been set.
-    GPIO::NumberingModes mode = GPIO::getmode();
+        // Check current mode
+        GPIO::NumberingModes mode = GPIO::getmode();
+        std::cout << "GPIO mode: " << getModeString(mode) << std::endl;
 
-    std::cout << "GPIO mode: " << getModeString(mode) << std::endl;
+        // Set the GPIO numbering mode
+        GPIO::setmode(GPIO::BOARD); // Or GPIO::BCM based on your needs
 
-    // Set the GPIO numbering mode (choose one based on your needs)
-    GPIO::setmode(GPIO::BOARD);  // Use board pin numbering 
+        // Set up the pin as input
+        GPIO::setup(pin, GPIO::IN);
 
-    // Set up the pin as intput
-    GPIO::setup(pin, GPIO::IN);  
+        // Get the initial state of the GPIO pin
+        int initialState = GPIO::input(pin);
+        std::cout << "Initial GPIO state: " << initialState << std::endl;
 
-    // Get the initial state of the GPIO pin
-    int initialState = GPIO::input(pin);
-
-    std::cout << "Initial GPIO state: " << initialState << std::endl; // Print the initial state
-
-    // Launch the asynchronous function in a separate thread
-    std::thread asyncThread;
-    asyncThread = std::thread([this, pin] {
-        this->delayedAction(pin);
-    });
-    asyncThread.detach();  // Detach the thread to avoid resource management concerns
+        // Launch the asynchronous function in a separate thread
+        std::thread asyncThread;
+        asyncThread = std::thread([this, pin] {
+            this->delayedAction(pin);
+        });
+        asyncThread.detach(); // Detach the thread to avoid resource management concerns
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error: Unable to access GPIO pin " << pin << ". " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
+    }
 }
 
 GpioPin::~GpioPin()
@@ -60,7 +64,8 @@ GpioPin::~GpioPin()
     }
 }
 
-void GpioPin::delayedAction(int pin) {
+void GpioPin::delayedAction(int pin) 
+{
     // Wait for 20 seconds using a sleep or a timer
     std::this_thread::sleep_for(std::chrono::seconds(5));
 

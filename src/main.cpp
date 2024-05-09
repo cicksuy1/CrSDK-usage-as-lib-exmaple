@@ -225,6 +225,54 @@ std::string readIPAddressFromFile(const std::string &filePath)
     return ipAddress;
 }
 
+bool checkIfTheServerIsRunning(std::string host)
+{
+  try 
+  {
+  // Create a new HTTP client with SSL and specify the CA certificate
+  httplib::SSLClient cli(host, PORT); // host, port
+
+  // Use your CA bundle
+  cli.set_ca_cert_path("/jetson_ssl/client.crt");
+
+  // Disable cert verification
+  cli.enable_server_certificate_verification(false);
+
+  // Perform a simple GET request
+  httplib::Result result = cli.Get("/");
+
+  if (!result) { // Check if the request failed
+      // Handle the error case (request failed)
+      spdlog::error("Error sending GET request");
+      return false;
+    } 
+    else 
+    {
+      // Access the response object using a temporary variable
+      httplib::Response response = result.value();
+
+      // Use the response object here (check status code, body etc.)
+      bool isServerRunning = (response.status == 200);
+
+      if (!isServerRunning) 
+      {
+        spdlog::error("Server crashed");
+        return false;
+      } 
+      else 
+      {
+        spdlog::info("The server running");
+        return true;
+      }
+    }
+  }
+  catch (const std::exception &e) // **Capture 'e' by reference**
+  { 
+    // Handle the exception and determine if it indicates a server crash
+    spdlog::error("Unexpected error in monitoring thread: {}", e.what());
+  }
+}
+
 int main()
 {
     // Register signal handler for Ctrl+C
@@ -333,8 +381,6 @@ int main()
         return EXIT_FAILURE;
     }
 
-    // sleep(1);
-
     // Configure server parameters
     const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
     const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
@@ -357,19 +403,27 @@ int main()
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       i++;
-      if(i >= 500){
-        for(CrInt32u j = 0; j < crsdk->cameraList.size(); ++j)
+      if(i >= 500)
+      {
+        if(crsdk->cameraList.size() == 0)
         {
-          if(crsdk->cameraList[j]->is_connected())
+          spdlog::warn("No cameras found! Please connect");
+        }
+        else
+        {
+          for(CrInt32u j = 0; j < crsdk->cameraList.size(); ++j)
           {
-            spdlog::info("Camera number {} is connected", j);
-          }
-          else 
-          {
-            spdlog::warn("Camera number {} is not connected!", j);
+            if(crsdk->cameraList[j]->is_connected())
+            {
+              spdlog::info("Camera number {} is connected", j);
+            }
+            else 
+            {
+              spdlog::warn("Camera number {} is not connected!", j);
+            }
           }
         }
-        spdlog::info("The server is running");
+        checkIfTheServerIsRunning(host);
         i = 0;
       }
       

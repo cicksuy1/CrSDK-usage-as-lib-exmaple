@@ -299,7 +299,8 @@ bool CrSDKInterface::getCamerasMode()
             {
                 spdlog::info("camera {} mode: {}", i, cameraModes[i]);
             }
-            else{
+            else
+            {
                 spdlog::error("Camera mode number {} is currently unavailable", i);
             }
 
