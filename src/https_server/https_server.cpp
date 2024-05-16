@@ -303,7 +303,7 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
         // switch to P mode logic...
         bool success = false;
         if(crsdkInterface_){
-            spdlog::info("switch to P mode");
+            spdlog::info("switch to P mode...");
             success = crsdkInterface_->switchToPMode(camera_id);
         }
         else{
@@ -312,10 +312,12 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
 
         if (success) {
             // Success message
+            spdlog::info("Changing the camera mode to M mode was successful");
             resolution_json["message"] = "Successfully switched to P mode";
             res.status = 200; // OK
         } else {
             // Error message
+            spdlog::error("Failed to change camera mode to P mode");
             resolution_json["error"] = "Failed to switch to P mode";
             res.status = 500; // Internal Server Error
         }
@@ -368,14 +370,23 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
         }
 
         // switch to M mode logic...
-        bool success = crsdkInterface_->switchToMMode(camera_id);
+        bool success = false;
+        if(crsdkInterface_){
+            spdlog::info("switch to M mode...");
+            success = crsdkInterface_->switchToMMode(camera_id);
+        }
+        else{
+            spdlog::error("ERROR: crsdkInterface_ is nullptr");
+        }
 
         if (success) {
             // Success message
+            spdlog::info("Changing the camera mode to M mode was successful");
             resolution_json["message"] = "Successfully switched to M mode";
             res.status = 200; // OK
         } else {
             // Error message
+            spdlog::error("Failed to change camera mode to M mode");
             resolution_json["error"] = "Failed to switch to M mode";
             res.status = 500; // Internal Server Error
         }

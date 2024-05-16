@@ -575,9 +575,6 @@ void CameraDevice::get_exposure_program_mode(std::promise<void>& prom, cli::text
     load_properties();
     cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
 
-    // When done, set the promise
-    prom.set_value();
-
     // Update the flag of the camera mode
     if(cameraMode == "Movie_P")
     {
@@ -587,6 +584,12 @@ void CameraDevice::get_exposure_program_mode(std::promise<void>& prom, cli::text
     {
         cameraMode = 'm';
     }
+
+    // Log the current mode for debugging
+    spdlog::info("Mode after getting exposure program: {}", cameraMode);
+
+    // When done, set the promise
+    prom.set_value();
 }
 
 void CameraDevice::get_still_capture_mode()
@@ -1508,7 +1511,7 @@ void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 {
 
     if(cameraMode == "p"){
-        tout << "The camera is already in P mode \n";
+        spdlog::warn("The camera is already in P mode");
         return;
     }
 
@@ -1536,7 +1539,7 @@ void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 {
     if(cameraMode == "m"){
-        tout << "The camera is already in M mode \n";
+        spdlog::warn("The camera is already in M mode");
         return;
     }
 

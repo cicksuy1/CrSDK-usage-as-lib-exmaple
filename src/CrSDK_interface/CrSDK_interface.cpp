@@ -173,6 +173,9 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         // Set the ISO to automatic
         cameraList[cameraNumber]->set_manual_iso(10);
 
+        // Introduce a small delay to allow the camera to process the mode change
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
         // Create a promise and future pair
         std::promise<void> prom;
         std::future<void> fut = prom.get_future();
@@ -182,6 +185,9 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
 
         // Wait for the asynchronous function to complete
         fut.wait();
+
+        // Log the current mode for debugging
+        spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
         
         // Checking whether the change of the camera's mode was successful.
         if(cameraModes[cameraNumber] == "m")
@@ -209,6 +215,9 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
 
         // Set the ISO to automatic.
         cameraList[cameraNumber]->set_manual_iso(10);
+        
+        // Introduce a small delay to allow the camera to process the mode change
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 
         // Create a promise and future pair
         std::promise<void> prom;
@@ -219,6 +228,9 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
 
         // Wait for the asynchronous function to complete
         fut.wait();
+
+        // Log the current mode for debugging
+        spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
 
         // Checking whether the change of the camera's mode was successful.
         if(cameraModes[cameraNumber] == "p")
