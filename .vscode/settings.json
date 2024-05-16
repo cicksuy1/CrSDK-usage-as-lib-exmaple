@@ -70,6 +70,12 @@
         "csignal": "cpp",
         "forward_list": "cpp",
         "mutex": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "future": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "ranges": "cpp",
+        "stop_token": "cpp",
+        "filesystem": "cpp"
     }
 }

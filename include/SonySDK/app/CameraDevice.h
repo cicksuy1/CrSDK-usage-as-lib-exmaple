@@ -24,6 +24,7 @@ typedef int errno_t;
 #include <fmt/format.h>
 #include <iomanip>  // For formatted output
 #include <stdexcept>  // For exception handling
+#include <future>
 
 namespace cli
 {
@@ -85,7 +86,8 @@ public:
     void get_shutter_speed();
     void get_position_key_setting();
     void get_exposure_program_mode();
-    void get_exposure_program_mode( cli::text& cameraMode);
+    void get_exposure_program_mode(cli::text& cameraMode);
+    void get_exposure_program_mode(std::promise<void>& prom, cli::text& cameraMode);
     void get_still_capture_mode();
     void get_focus_mode();
     void get_focus_area();

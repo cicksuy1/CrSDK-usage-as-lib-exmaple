@@ -115,7 +115,7 @@ bool CrSDKInterface::connectToCameras()
                     return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
                 });
 
-                // // Wait for both tasks to finish
+                // Wait for both tasks to finish
                 bool connectStatus = connectTask.get();
                 connectStatus ? spdlog::info("The connection to camera number {} was successful", i) : spdlog::error("The connection to camera number {} failed", i);
                 connectTasks.push_back(std::move(connectTask));  // Use move semantics
@@ -129,18 +129,6 @@ bool CrSDKInterface::connectToCameras()
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         bool allConnected = true;
-
-        // Wait for all async tasks to complete
-        // for (auto &task : connectTasks) 
-        // {
-        //     bool result = task.get();  // Blocks until the async task completes
-        //     if (!result) 
-        //     {
-        //         spdlog::error("Failed to connect to a camera.");
-        //         allConnected = false;
-        //         break;  // Exit early if a connection fails
-        //     }
-        // }
 
         for (auto& camera : cameraList) {
             if (camera) {
@@ -179,15 +167,34 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
 {
     try
     {
+        // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_M_mode(cameraModes[cameraNumber]);
 
         // Set the ISO to automatic
         cameraList[cameraNumber]->set_manual_iso(10);
-        return true;
+
+        // Create a promise and future pair
+        std::promise<void> prom;
+        std::future<void> fut = prom.get_future();
+
+        // Call the asynchronous function to update the variable that holds the mode of the camera and pass the promise
+        cameraList[cameraNumber]->get_exposure_program_mode(prom, cameraModes[cameraNumber]);
+
+        // Wait for the asynchronous function to complete
+        fut.wait();
+        
+        // Checking whether the change of the camera's mode was successful.
+        if(cameraModes[cameraNumber] == "m")
+        {
+             return true;
+        }
+        else
+        {
+            return false;
+        }
     }
     catch(const std::exception& e)
     {
-
         spdlog::error("An error occurred while trying to change the camera mode to M mode: {}", e.what());
         return false;
     }
@@ -197,15 +204,34 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
 {
  try
     {
+        // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
 
-        // Set the ISO to automatic
+        // Set the ISO to automatic.
         cameraList[cameraNumber]->set_manual_iso(10);
-        return true;
+                
+        // Create a promise and future pair
+        std::promise<void> prom;
+        std::future<void> fut = prom.get_future();
+
+        // Call the asynchronous function to update the variable that holds the mode of the camera and pass the promise
+        cameraList[cameraNumber]->get_exposure_program_mode(prom, cameraModes[cameraNumber]);
+
+        // Wait for the asynchronous function to complete
+        fut.wait();
+
+        // Checking whether the change of the camera's mode was successful.
+        if(cameraModes[cameraNumber] == "p")
+        {
+             return true;
+        }
+        else
+        {
+            return false;
+        }
     }
     catch(const std::exception& e)
     {
-
         spdlog::error("An error occurred while trying to change the camera mode to P mode: {}", e.what());
         return false;
     }}
@@ -293,19 +319,30 @@ bool CrSDKInterface::getCamerasMode()
     try
     {
         // Get information about all cameras mode
-        for(CrInt32u i = 0; i < cameraList.size(); ++i){
-            cameraList[i]->get_exposure_program_mode(cameraModes[i]);
-            if(!cameraModes[i].empty())
+        for(CrInt32u i = 0; i < cameraList.size(); ++i)
+        {
+            // Create a promise and future pair
+            std::promise<void> prom;
+            std::future<void> fut = prom.get_future();
+
+            // Call the asynchronous function to update the variable that holds the mode of the camera and pass the promise
+            cameraList[i]->get_exposure_program_mode(prom, cameraModes[i]);
+
+            // Wait for the asynchronous function to complete
+            fut.wait();
+
+            // Checking whether the get camera's mode was successful.
+            if(cameraModes[i] == "p" || cameraModes[i] == "m")
             {
                 spdlog::info("camera {} mode: {}", i, cameraModes[i]);
+                return true;
             }
             else
             {
                 spdlog::error("Camera mode number {} is currently unavailable", i);
+                return false;
             }
-
         }
-        return true;
     }
     catch(const std::exception& e)
     {
@@ -318,10 +355,25 @@ bool CrSDKInterface::getCameraMode(int cameraNumber)
 {
     try
     {
+        // Create a promise and future pair
+        std::promise<void> prom;
+        std::future<void> fut = prom.get_future();
 
-        // Get information about a specific camera mode
-        cameraList[cameraNumber]->get_exposure_program_mode(cameraModes[cameraNumber]);
-        return true;
+        // Call the asynchronous function to et information about a specific camera mode and pass the promise
+        cameraList[cameraNumber]->get_exposure_program_mode(prom, cameraModes[cameraNumber]);
+
+        // Wait for the asynchronous function to complete
+        fut.wait();
+
+        // Checking whether the get camera's mode was successful.
+        if(cameraModes[cameraNumber] == "p" || cameraModes[cameraNumber] == "m")
+        {
+             return true;
+        }
+        else
+        {
+            return false;
+        }
     }
     catch(const std::exception& e)
     {

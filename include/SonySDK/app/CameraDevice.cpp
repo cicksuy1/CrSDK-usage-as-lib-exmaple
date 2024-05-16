@@ -554,11 +554,10 @@ void CameraDevice::get_exposure_program_mode()
     tout << "Exposure Program Mode: " << format_exposure_program_mode(m_prop.exposure_program_mode.current) << '\n';
 }
 
-void CameraDevice::get_exposure_program_mode( cli::text& cameraMode)
+void CameraDevice::get_exposure_program_mode(cli::text& cameraMode)
 {
     load_properties();
     cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
-    // tout << "Exposure Program Mode: " << cameraMode << '\n';
 
     // Update the flag of the camera mode
     if(cameraMode == "Movie_P")
@@ -569,7 +568,25 @@ void CameraDevice::get_exposure_program_mode( cli::text& cameraMode)
     {
         cameraMode = 'm';
     }
-    
+}
+
+void CameraDevice::get_exposure_program_mode(std::promise<void>& prom, cli::text& cameraMode)
+{
+    load_properties();
+    cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
+
+    // When done, set the promise
+    prom.set_value();
+
+    // Update the flag of the camera mode
+    if(cameraMode == "Movie_P")
+    {
+        cameraMode = 'p';
+    } 
+    else if (cameraMode == "Movie_M")
+    {
+        cameraMode = 'm';
+    }
 }
 
 void CameraDevice::get_still_capture_mode()

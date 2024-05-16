@@ -5,6 +5,8 @@
 #include <exception> // For handling exceptions
 #include <unistd.h>  // For sleep function in restat()
 #include <thread>
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
 
 // Include the JetsonGPIO library for GPIO pin control
 #include "JetsonGPIO.h"

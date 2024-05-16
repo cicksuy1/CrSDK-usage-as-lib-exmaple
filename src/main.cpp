@@ -275,6 +275,9 @@ bool checkIfTheServerIsRunning(std::string host)
 
 int main()
 {
+  std::cout << "CrSDK_HTTPS_Server" << std::endl;
+  std::cout << "------------------------" << std::endl;
+
     // Register signal handler for Ctrl+C
     struct sigaction sa;
     sa.sa_handler = signalHandler;
@@ -403,7 +406,7 @@ int main()
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       i++;
-      if(i >= 500)
+      if(i >= 3000)
       {
         if(crsdk->cameraList.size() == 0)
         {
