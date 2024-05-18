@@ -1,12 +1,12 @@
 #include "CrSDK_interface.h"
 
-CrSDKInterface::CrSDKInterface(){
-
+CrSDKInterface::CrSDKInterface()
+{
     // Optionally initialize the vector elements here
     cameraModes.resize(MAX_CAMERAS); // Allocate space for 4 elements
 }
 
-// CrSDKInterface::~CrSDKInterface() 
+// CrSDKInterface::~CrSDKInterface()
 // {
 //     // Release resources acquired in the constructor or during object lifetime
 //     for (CrInt32u i = 0; i < cameraList.size(); ++i)
@@ -60,10 +60,8 @@ bool CrSDKInterface::enumerateCameraDevices()
     spdlog::info("Enumerate connected camera devices...");
 
     // Create asynchronous tasks for enum_status and ncams
-    auto enumTask = std::async([this]() 
-    {
-        return SDK::EnumCameraObjects(&camera_list);
-    });
+    auto enumTask = std::async([this]()
+                               { return SDK::EnumCameraObjects(&camera_list); });
 
     // Wait for both tasks to finish
     auto enumStatus = enumTask.get();
@@ -93,34 +91,32 @@ bool CrSDKInterface::enumerateCameraDevices()
     return true;
 }
 
-bool CrSDKInterface::connectToCameras() 
+bool CrSDKInterface::connectToCameras()
 {
-    try 
+    try
     {
         spdlog::info("Connecting to both cameras...");
 
         std::vector<std::future<bool>> connectTasks;
 
-        for (CrInt32u i = 0; i < camera_list->GetCount(); ++i) 
+        for (CrInt32u i = 0; i < camera_list->GetCount(); ++i)
         {
             auto *camera_info = camera_list->GetCameraObjectInfo(i);
             spdlog::info("Creating object for camera {}...", i + 1);
             CameraDevicePtr camera = std::make_shared<cli::CameraDevice>(i + 1, camera_info);
             cameraList.push_back(camera);
 
-            if (!camera->is_connected()) 
+            if (!camera->is_connected())
             {
-                auto connectTask = std::async(std::launch::async, [camera]() 
-                {
-                    return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON);
-                });
+                auto connectTask = std::async(std::launch::async, [camera]()
+                                              { return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON); });
 
                 // Wait for both tasks to finish
                 bool connectStatus = connectTask.get();
                 connectStatus ? spdlog::info("The connection to camera number {} was successful", i) : spdlog::error("The connection to camera number {} failed", i);
-                connectTasks.push_back(std::move(connectTask));  // Use move semantics
-            } 
-            else 
+                connectTasks.push_back(std::move(connectTask)); // Use move semantics
+            }
+            else
             {
                 spdlog::warn("Camera {} is already connected. Please disconnect first.", i + 1);
             }
@@ -130,34 +126,50 @@ bool CrSDKInterface::connectToCameras()
 
         bool allConnected = true;
 
-        for (auto& camera : cameraList) {
-            if (camera) {
+        for (auto &camera : cameraList)
+        {
+            if (camera)
+            {
                 std::promise<bool> connectionPromise;
                 std::future<bool> connectionFuture = connectionPromise.get_future();
 
-                std::async([camera, &connectionPromise]() {
-                    connectionPromise.set_value(camera->is_connected());  // Set the value for the promise
-                });
+                std::async([camera, &connectionPromise]()
+                           {
+                               connectionPromise.set_value(camera->is_connected()); // Set the value for the promise
+                           });
 
                 // Wait for the asynchronous task to complete
-                bool connected = connectionFuture.get();  // Ensure we wait for completion
-                if (!connected) {
+                bool connected = connectionFuture.get(); // Ensure we wait for completion
+                if (!connected)
+                {
                     spdlog::error("A camera connection check failed.");
-                    return false;  // Return immediately if any camera fails to connect
+                    return false; // Return immediately if any camera fails to connect
                 }
             }
         }
 
-        if (allConnected) 
+        if (allConnected)
         {
             spdlog::info("All cameras connected successfully.");
+            bool setFocusPositionSuccess = setFocusPositionSetting();
+            if (setFocusPositionSuccess)
+            {
+                spdlog::info("Set Focus Position Setting was successful");
+            }
+            else
+            {
+                spdlog::error("Failed to set Focus Position Setting");
+            }
             return true;
-        } else {
+        }
+        else
+        {
             spdlog::error("One or more connections failed.");
             return false;
         }
-
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         spdlog::error("Error while trying to connect to the cameras: {}", e.what());
         return false;
     }
@@ -188,18 +200,18 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
 
         // Log the current mode for debugging
         spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
-        
+
         // Checking whether the change of the camera's mode was successful.
-        if(cameraModes[cameraNumber] == "m")
+        if (cameraModes[cameraNumber] == "m")
         {
-             return true;
+            return true;
         }
         else
         {
             return false;
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to change the camera mode to M mode: {}", e.what());
         return false;
@@ -208,17 +220,17 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
 
 bool CrSDKInterface::switchToPMode(int cameraNumber)
 {
- try
+    try
     {
         // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
 
         // Set the ISO to automatic.
         cameraList[cameraNumber]->set_manual_iso(10);
-        
+
         // Introduce a small delay to allow the camera to process the mode change
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                
+
         // Create a promise and future pair
         std::promise<void> prom;
         std::future<void> fut = prom.get_future();
@@ -233,20 +245,21 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
 
         // Checking whether the change of the camera's mode was successful.
-        if(cameraModes[cameraNumber] == "p")
+        if (cameraModes[cameraNumber] == "p")
         {
-             return true;
+            return true;
         }
         else
         {
             return false;
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to change the camera mode to P mode: {}", e.what());
         return false;
-    }}
+    }
+}
 
 bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
 {
@@ -274,16 +287,15 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
                 cameraList[cameraNumber]->set_manual_shutter_speed(33);
                 cameraList[cameraNumber]->set_manual_iso(userBrightnessInput);
             }
-
             return true;
-        } 
+        }
         else
         {
             spdlog::error("Changing the camera brightness is not possible because the camera is not M(manual) mode");
             return false;
-        }   
+        }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to change the brightness of the camera: {}", e.what());
         return false;
@@ -296,12 +308,14 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
     {
         if (cameraModes[cameraNumber] == "p")
         {
-            if (x < 0 || x > 639) {
+            if (x < 0 || x > 639)
+            {
                 spdlog::error("Error: The selected X value is out of range");
                 return false;
             }
 
-            if (y < 0 || y > 479 ) {
+            if (y < 0 || y > 479)
+            {
                 spdlog::error("Error: The selected Y value is out of range");
                 return false;
             }
@@ -310,16 +324,16 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 
             // Set exposure program Manual mode
             cameraList[cameraNumber]->set_manual_af_area_position(x_y);
-            
+
             return true;
-        } 
+        }
         else
         {
             spdlog::error("Changing the camera AF area position is not possible because the camera is not P(auto) mode");
             return false;
-        }   
+        }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to change the AF area position of the camera: {}", e.what());
         return false;
@@ -331,7 +345,7 @@ bool CrSDKInterface::getCamerasMode()
     try
     {
         // Get information about all cameras mode
-        for(CrInt32u i = 0; i < cameraList.size(); ++i)
+        for (CrInt32u i = 0; i < cameraList.size(); ++i)
         {
             // Create a promise and future pair
             std::promise<void> prom;
@@ -344,7 +358,7 @@ bool CrSDKInterface::getCamerasMode()
             fut.wait();
 
             // Checking whether the get camera's mode was successful.
-            if(cameraModes[i] == "p" || cameraModes[i] == "m")
+            if (cameraModes[i] == "p" || cameraModes[i] == "m")
             {
                 spdlog::info("camera {} mode: {}", i, cameraModes[i]);
                 return true;
@@ -356,7 +370,7 @@ bool CrSDKInterface::getCamerasMode()
             }
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
         return false;
@@ -378,16 +392,16 @@ bool CrSDKInterface::getCameraMode(int cameraNumber)
         fut.wait();
 
         // Checking whether the get camera's mode was successful.
-        if(cameraModes[cameraNumber] == "p" || cameraModes[cameraNumber] == "m")
+        if (cameraModes[cameraNumber] == "p" || cameraModes[cameraNumber] == "m")
         {
-             return true;
+            return true;
         }
         else
         {
             return false;
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
         return false;
@@ -396,12 +410,15 @@ bool CrSDKInterface::getCameraMode(int cameraNumber)
 
 cli::text CrSDKInterface::getCameraModeStr(int cameraNumber) const
 {
-  if (cameraNumber >= 0 && cameraNumber < cameraList.size()) {
-    return cameraModes[cameraNumber];
-  } else {
-    // Handle invalid camera number (e.g., return default text or throw an exception)
-    return cli::text("Invalid camera number");
-  }
+    if (cameraNumber >= 0 && cameraNumber < cameraList.size())
+    {
+        return cameraModes[cameraNumber];
+    }
+    else
+    {
+        // Handle invalid camera number (e.g., return default text or throw an exception)
+        return cli::text("Invalid camera number");
+    }
 }
 
 bool CrSDKInterface::downloadCameraSetting(int cameraNumber)
@@ -411,7 +428,7 @@ bool CrSDKInterface::downloadCameraSetting(int cameraNumber)
         cameraList[cameraNumber]->do_download_camera_setting_file();
         return true;
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred when trying to download the camera settings file to the computer: {}", e.what());
         return false;
@@ -425,25 +442,29 @@ bool CrSDKInterface::uploadCameraSetting(int cameraNumber)
         cameraList[cameraNumber]->do_upload_camera_setting_file();
         return true;
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to load the camera settings file from the computer: {}", e.what());
         return false;
     }
 }
 
-bool CrSDKInterface::disconnectToCameras() 
+bool CrSDKInterface::disconnectToCameras()
 {
-    try {
-        if (cameraList.empty()) {
+    try
+    {
+        if (cameraList.empty())
+        {
             spdlog::warn("Camera list is empty. No cameras to disconnect.");
             return true;
         }
 
-        for (auto &camera : cameraList) {
-            if (camera && camera->is_connected()) {
+        for (auto &camera : cameraList)
+        {
+            if (camera && camera->is_connected())
+            {
                 auto disconnect_status = camera->disconnect();
-                if (!disconnect_status) 
+                if (!disconnect_status)
                 {
                     spdlog::error("Failed to disconnect camera.");
                     return false;
@@ -451,15 +472,17 @@ bool CrSDKInterface::disconnectToCameras()
             }
         }
 
-        for (auto &camera : cameraList) 
+        for (auto &camera : cameraList)
         {
-            auto future = std::async(std::launch::async, [&]() {
-                camera->release();  // Release the camera device
-            });
+            auto future = std::async(std::launch::async, [&]()
+                                     {
+                                         camera->release(); // Release the camera device
+                                     });
 
-            auto status = future.wait_for(std::chrono::seconds(3));  // Timeout for resource release
+            auto status = future.wait_for(std::chrono::seconds(3)); // Timeout for resource release
 
-            if (status == std::future_status::timeout) {
+            if (status == std::future_status::timeout)
+            {
                 spdlog::error("Timeout while releasing camera device resources.");
                 return false;
             }
@@ -467,8 +490,9 @@ bool CrSDKInterface::disconnectToCameras()
 
         spdlog::info("Successfully disconnected all cameras.");
         return true;
-
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         spdlog::error("Error while disconnecting cameras: {}", e.what());
         return false;
     }
@@ -483,33 +507,69 @@ bool CrSDKInterface::releaseCameraList()
         spdlog::info("the cleaning of the cameraList object was successfully.");
         return true;
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to release the camera list object: {}", e.what());
         return false;
     }
 }
 
-bool CrSDKInterface::releaseCameraRemoteSDK() 
+bool CrSDKInterface::releaseCameraRemoteSDK()
 {
-    try {
-        std::future<void> future = std::async(std::launch::async, [&]() {
-            SDK::Release(); // Release the Camera Remote SDK resources
-        });
+    try
+    {
+        std::future<void> future = std::async(std::launch::async, [&]()
+                                              {
+                                                  SDK::Release(); // Release the Camera Remote SDK resources
+                                              });
 
         // Wait for the SDK release to complete, with a timeout
-        auto status = future.wait_for(std::chrono::seconds(3));  // Adjust the timeout as needed
+        auto status = future.wait_for(std::chrono::seconds(3)); // Adjust the timeout as needed
 
-        if (status == std::future_status::timeout) {
+        if (status == std::future_status::timeout)
+        {
             spdlog::error("Timeout while releasing Camera Remote SDK resources.");
-            return false;  // Operation timed out
+            return false; // Operation timed out
         }
 
         spdlog::info("The release of the Camera Remote SDK resources was successful.");
         return true;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         spdlog::error("An error occurred while trying to release the Camera Remote SDK resources: {}", e.what());
         return false;
     }
 }
 
+bool CrSDKInterface::setFocusPositionSetting(int cameraNumber)
+{
+    try
+    {
+        // Change the camera's focus settings.
+        cameraList[cameraNumber]->set_focus_position_setting();
+
+        // Introduce a small delay to allow the camera to process the mode change
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        // Create a promise and future pair
+        std::promise<void> prom;
+        std::future<void> fut = prom.get_future();
+
+        // Call the asynchronous function to update the variable that holds the mode of the camera and pass the promise
+        auto positionSetting = Get_focus_position_setting(prom);
+
+        // Wait for the asynchronous function to complete
+        fut.wait();
+
+        // Log the current mode for debugging
+        spdlog::info("Current position setting: {}", positionSetting);
+
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("An error occurred while trying to change the camera's focus settings.: {}", e.what());
+        return false;
+    }
+}

@@ -173,6 +173,13 @@ public:
      */
     bool uploadCameraSetting(int cameraNumber);
 
+    /**
+     * @brief Change the camera's focus settings.
+     * @param cameraNumber The number of the camera that the user wants to change the camera's focus settings.
+     * @return True if change the camera's focus settings was successful, false otherwise.
+    */
+    bool setFocusPositionSetting(int cameraNumber);
+
 // private:
     std::vector<cli::text> cameraModes; // No size argument here
     std::vector<CameraDevicePtr> cameraList;
