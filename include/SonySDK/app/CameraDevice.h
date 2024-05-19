@@ -94,6 +94,7 @@ public:
     void get_live_view();
     void get_live_view_image_quality();
     void get_af_area_position();
+    bool get_af_area_position_bool();
     void get_select_media_format();
     void get_white_balance();
     bool get_custom_wb();
@@ -131,10 +132,11 @@ public:
 
     void set_aperture();
     void set_iso();
-    void set_manual_iso(int userInput);
+    bool set_manual_iso_bool(int userInput);
     bool set_save_info() const;
     void set_shutter_speed();
     void set_manual_shutter_speed(int userInput);
+    bool set_manual_shutter_speed_bool(int userInput);
     void set_position_key_setting();
     void set_exposure_program_mode();
     void set_exposure_program_P_mode( cli::text& cameraMode);
@@ -144,7 +146,7 @@ public:
     void set_focus_area();
     void set_live_view_image_quality();
     void set_af_area_position();
-    void set_manual_af_area_position(int x_y);
+    bool set_manual_af_area_position(int x_y);
     void set_white_balance();
     void set_custom_wb();
     void set_zoom_operation();

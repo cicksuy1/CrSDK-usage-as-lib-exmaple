@@ -190,7 +190,14 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         cameraList[cameraNumber]->set_exposure_program_M_mode(cameraModes[cameraNumber]);
 
         // Set the ISO to automatic
-        cameraList[cameraNumber]->set_manual_iso(10);
+        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10);
+
+        // Checking whether changing the ISO to automatic succeeded or failed
+        if(!setManualIsoSuccess)
+        {
+            spdlog::error("Setting the ISO to automatic failed");
+            return false;
+        }
 
         // Introduce a small delay to allow the camera to process the mode change
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -233,7 +240,14 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
 
         // Set the ISO to automatic.
-        cameraList[cameraNumber]->set_manual_iso(10);
+        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10);
+
+        // Checking whether changing the ISO to automatic succeeded or failed
+        if(!setManualIsoSuccess)
+        {
+            spdlog::error("Setting the ISO to automatic failed");
+            return false;
+        }
 
         // Introduce a small delay to allow the camera to process the mode change
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -272,37 +286,54 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
 {
     try
     {
-        if (cameraModes[cameraNumber] == "m")
+        // Check if the camera is in manual mode
+        if (cameraModes[cameraNumber] != "m")
         {
-            // Checking whether the user's choice of brightness value is correct
-            if (userBrightnessInput < 0 || userBrightnessInput > 48)
-            {
-                spdlog::error("the brightness value entered is incorrect.");
-                return false;
-            }
-            else if (userBrightnessInput >= 0 && userBrightnessInput <= 33)
-            {
-                // shutter_speed 0 - 33
-                cameraList[cameraNumber]->set_manual_shutter_speed(userBrightnessInput);
+            spdlog::error("Changing the camera brightness is not possible because the camera is not in manual mode.");
+            return false;
+        }
 
-                // Set the ISO to automatic
-                cameraList[cameraNumber]->set_manual_iso(10);
-            }
-            else
-            {
-                // ISO 23 - 38
-                cameraList[cameraNumber]->set_manual_shutter_speed(33);
-                cameraList[cameraNumber]->set_manual_iso(userBrightnessInput);
-            }
-            return true;
+        // Validate the user input for brightness
+        if (userBrightnessInput < 0 || userBrightnessInput > 48)
+        {
+            spdlog::error("The brightness value entered is incorrect.");
+            return false;
+        }
+
+        bool setManualShutterSpeedSuccess = false;
+        bool setManualIsoSuccess = false;
+
+        if (userBrightnessInput <= 33)
+        {
+            // Set shutter speed (0-33) and automatic ISO
+            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(userBrightnessInput);
+            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10); // Assuming 10 is the code for auto ISO
         }
         else
         {
-            spdlog::error("Changing the camera brightness is not possible because the camera is not M(manual) mode");
+            // Set fixed shutter speed (33) and ISO (23-38)
+            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(33);
+            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(userBrightnessInput);
+        }
+
+        // Check if setting ISO was successful
+        if (!setManualIsoSuccess)
+        {
+            spdlog::error("Setting the ISO failed.");
             return false;
         }
+
+        // Check if setting shutter speed was successful
+        if (!setManualShutterSpeedSuccess)
+        {
+            spdlog::error("Setting the shutter speed failed.");
+            return false;
+        }
+
+        spdlog::info("Setting the ISO and shutter speed was successful.");
+        return true;
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         spdlog::error("An error occurred while trying to change the brightness of the camera: {}", e.what());
         return false;
@@ -313,34 +344,39 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 {
     try
     {
-        if (cameraModes[cameraNumber] == "p")
+        // Check if the camera is in auto mode
+        if (cameraModes[cameraNumber] != "p")
         {
-            if (x < 0 || x > 639)
-            {
-                spdlog::error("Error: The selected X value is out of range");
-                return false;
-            }
-
-            if (y < 0 || y > 479)
-            {
-                spdlog::error("Error: The selected Y value is out of range");
-                return false;
-            }
-
-            int x_y = x << 16 | y;
-
-            // Set exposure program Manual mode
-            cameraList[cameraNumber]->set_manual_af_area_position(x_y);
-
-            return true;
-        }
-        else
-        {
-            spdlog::error("Changing the camera AF area position is not possible because the camera is not P(auto) mode");
+            spdlog::error("Changing the camera AF area position is not possible because the camera is not in auto mode.");
             return false;
         }
+
+        // Validate the user input for X and Y coordinates
+        if (x < 0 || x > 639)
+        {
+            spdlog::error("Error: The selected X value is out of range.");
+            return false;
+        }
+
+        if (y < 0 || y > 479)
+        {
+            spdlog::error("Error: The selected Y value is out of range.");
+            return false;
+        }
+
+        int x_y = (x << 16) | y;
+
+        // Attempt to set the AF area position
+        if (!cameraList[cameraNumber]->set_manual_af_area_position(x_y))
+        {
+            spdlog::error("Failed to set the AF area position.");
+            return false;
+        }
+
+        spdlog::info("Successfully set the AF area position.");
+        return true;
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         spdlog::error("An error occurred while trying to change the AF area position of the camera: {}", e.what());
         return false;
@@ -392,23 +428,16 @@ bool CrSDKInterface::getCameraMode(int cameraNumber)
         std::promise<void> prom;
         std::future<void> fut = prom.get_future();
 
-        // Call the asynchronous function to et information about a specific camera mode and pass the promise
+        // Call the asynchronous function to get information about a specific camera mode and pass the promise
         cameraList[cameraNumber]->get_exposure_program_mode(prom, cameraModes[cameraNumber]);
 
         // Wait for the asynchronous function to complete
         fut.wait();
 
-        // Checking whether the get camera's mode was successful.
-        if (cameraModes[cameraNumber] == "p" || cameraModes[cameraNumber] == "m")
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        // Check if the camera mode is either "p" (program mode) or "m" (manual mode)
+        return (cameraModes[cameraNumber] == "p" || cameraModes[cameraNumber] == "m");
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
         return false;
