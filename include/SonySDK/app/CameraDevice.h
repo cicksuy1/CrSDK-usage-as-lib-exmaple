@@ -178,7 +178,6 @@ public:
     void set_silent_mode_auto_pixel_mapping();
     void set_shutter_type();
     void set_focus_position_setting();
-
     void execute_lock_property(CrInt16u code);
     void set_select_media_format();
     void execute_movie_rec();
@@ -188,6 +187,8 @@ public:
     void change_live_view_enable();
     bool is_live_view_enable() { return m_lvEnbSet; };
     void execute_preset_focus();
+    void execute_preset_focus_void();
+    bool execute_preset_focus_bool();
     void execute_APS_C_or_Full();
     void execute_movie_rec_toggle();
     void do_download_camera_setting_file();

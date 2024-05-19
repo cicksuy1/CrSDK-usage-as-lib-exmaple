@@ -126,6 +126,8 @@ bool CrSDKInterface::connectToCameras()
 
         bool allConnected = true;
 
+        int camera_id = 0;
+
         for (auto &camera : cameraList)
         {
             if (camera)
@@ -145,21 +147,26 @@ bool CrSDKInterface::connectToCameras()
                     spdlog::error("A camera connection check failed.");
                     return false; // Return immediately if any camera fails to connect
                 }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                // Load Zoom and Focus Position Enable Preset.
+                bool loadZoomAndFocusPositionSuccess = loadZoomAndFocusPosition(camera_id);
+                if (loadZoomAndFocusPositionSuccess)
+                {
+                    spdlog::info("Load Zoom and Focus Position Enable Preset was successful");
+                }
+                else
+                {
+                    spdlog::error("Failed to load Zoom and Focus Position Enable Preset");
+                }
+                camera_id++;
             }
         }
 
         if (allConnected)
         {
             spdlog::info("All cameras connected successfully.");
-            bool setFocusPositionSuccess = setFocusPositionSetting();
-            if (setFocusPositionSuccess)
-            {
-                spdlog::info("Set Focus Position Setting was successful");
-            }
-            else
-            {
-                spdlog::error("Failed to set Focus Position Setting");
-            }
             return true;
         }
         else
@@ -542,34 +549,30 @@ bool CrSDKInterface::releaseCameraRemoteSDK()
     }
 }
 
-bool CrSDKInterface::setFocusPositionSetting(int cameraNumber)
+bool CrSDKInterface::loadZoomAndFocusPosition(int cameraNumber)
 {
     try
     {
-        // Change the camera's focus settings.
-        cameraList[cameraNumber]->set_focus_position_setting();
+        // Execute preset focus.
+        bool executePresetFocusSuccess = cameraList[cameraNumber]->execute_preset_focus_bool();
 
-        // Introduce a small delay to allow the camera to process the mode change
+        // Introduce a small delay to allow the camera to process the set focus position setting
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-        // Create a promise and future pair
-        std::promise<void> prom;
-        std::future<void> fut = prom.get_future();
-
-        // Call the asynchronous function to update the variable that holds the mode of the camera and pass the promise
-        auto positionSetting = Get_focus_position_setting(prom);
-
-        // Wait for the asynchronous function to complete
-        fut.wait();
-
-        // Log the current mode for debugging
-        spdlog::info("Current position setting: {}", positionSetting);
-
-        return true;
+       
+        if(executePresetFocusSuccess)
+        {
+            spdlog::info("Execute preset focus was successful");
+            return true;
+        }
+        else
+        {
+            spdlog::error("Failed to execute preset focus");
+            return false;
+        }
     }
     catch (const std::exception &e)
     {
-        spdlog::error("An error occurred while trying to change the camera's focus settings.: {}", e.what());
+        spdlog::error("An error occurred while trying to to execute preset focus: {}", e.what());
         return false;
     }
 }

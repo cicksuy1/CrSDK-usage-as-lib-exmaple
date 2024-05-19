@@ -3900,8 +3900,6 @@ void CameraDevice::execute_pos_xy(CrInt16u code, int x_y)
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
-
-
 void CameraDevice::execute_preset_focus()
 {
     load_properties();
@@ -3982,6 +3980,92 @@ void CameraDevice::execute_preset_focus()
     prop.SetCurrentValue(input_value);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
     SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::execute_preset_focus_void()
+{
+    load_properties();
+
+    auto& values_save = m_prop.save_zoom_and_focus_position.possible;
+    auto& values_load = m_prop.load_zoom_and_focus_position.possible;
+
+    if ((1 != m_prop.save_zoom_and_focus_position.writable) &&
+        (1 != m_prop.load_zoom_and_focus_position.writable)){
+        // Not a settable property
+        spdlog::error("Preset Focus and Zoom is not supported.");
+        return;
+    }
+
+    CrInt32u code = 0;
+   
+    if(1 == m_prop.load_zoom_and_focus_position.writable) 
+    {
+        code = SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Load;
+    }
+   
+    text_stringstream ss_slot("1");
+    int input_value = 0;
+    ss_slot >> input_value;
+
+    if (code == SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Save) {
+        if (find(values_save.begin(), values_save.end(), input_value) == values_save.end()) {
+            return;
+        }
+    }
+    else {
+        if (find(values_load.begin(), values_load.end(), input_value) == values_load.end()) {
+            return;
+        }
+    }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue(input_value);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+bool CameraDevice::execute_preset_focus_bool()
+{
+    load_properties();
+
+    auto& values_save = m_prop.save_zoom_and_focus_position.possible;
+    auto& values_load = m_prop.load_zoom_and_focus_position.possible;
+
+    if ((1 != m_prop.save_zoom_and_focus_position.writable) &&
+        (1 != m_prop.load_zoom_and_focus_position.writable)) {
+        // Not a settable property
+        spdlog::error("Preset Focus and Zoom is not supported.");
+        return false;
+    }
+
+    CrInt32u code = 0;
+   
+    if (1 == m_prop.load_zoom_and_focus_position.writable) {
+        code = SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Load;
+    }
+   
+    text_stringstream ss_slot("1");
+    int input_value = 0;
+    ss_slot >> input_value;
+
+    if (code == SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Save) {
+        if (find(values_save.begin(), values_save.end(), input_value) == values_save.end()) {
+            return false;
+        }
+    } else {
+        if (find(values_load.begin(), values_load.end(), input_value) == values_load.end()) {
+            return false;
+        }
+    }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue(input_value);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    return true;
 }
 
 void CameraDevice::execute_APS_C_or_Full()
@@ -6341,21 +6425,22 @@ void CameraDevice::get_mediaprofile()
 bool CameraDevice::get_focus_position_setting()
 {
     load_properties();
+    std::cout << m_prop.focus_position_setting.possible.size() << std::endl;
     if (m_prop.focus_position_setting.possible.size() < 1) {
-        tout << "Focus Position Setting is not supported.\n";
+        spdlog::error("Focus Position Setting is not supported.");
         return false;
     }
 
-    tout << "Focus Position Current Value : ";
+    spdlog::info("Focus Position Current Value : ");
     format_focus_position_value(m_prop.focus_position_current_value.current);
-    tout << "Focus Position Setting min   : ";
+    spdlog::info("Focus Position Setting min   : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(0));
-    tout << "Focus Position Setting max   : ";
+    spdlog::info("Focus Position Setting max   : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(1));
-    tout << "Focus Position Setting Step  : ";
+    spdlog::info("Focus Position Setting Step  : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(2));
 
-    tout << "Focus Driving Status: " << format_focus_driving_status(m_prop.focus_driving_status.current) << std::endl;
+    spdlog::info("Focus Driving Status: {}", format_focus_driving_status(m_prop.focus_driving_status.current));
     return true;
 }
 
