@@ -52,10 +52,10 @@ public:
      * @param port The port on which the server will listen.
      * @param cert_file The path to the SSL certificate file.
      * @param key_file The path to the SSL key file.
+     * @param stopRequested A pointer to std::atomic<bool> flag.
      * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface = nullptr);
-
+    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface = nullptr);
 
     /**
      * @brief Constructs a Server object with basic HTTP server parameters.
@@ -63,11 +63,18 @@ public:
      * @param port The port on which the server will listen.
      * @param cert_file The path to the SSL certificate file.
      * @param key_file The path to the SSL key file.
+     * @param stopRequested A pointer to std::atomic<bool> flag.
      * @param gpioP An instance of GPIO pin to associate with the server.
      * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, GpioPin *gpioP = nullptr, CrSDKInterface *crsdkInterface = nullptr);
+    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin *gpioP = nullptr, CrSDKInterface *crsdkInterface = nullptr);
 
+    /**
+     * Sets the GpioPin object associated with the server.
+     * @param gpioPin A pointer to the GpioPin object to be associated with the server.
+     * @precondition gpioPin must be a valid pointer to a GpioPin object.
+     * @postcondition The server's associated GpioPin object is set to the provided gpioPin.
+    */
     void setGpioPin(GpioPin *gpioPin);
 
     /**
@@ -100,7 +107,8 @@ private:
     int port_;                                                  ///< Port on which the server will listen.
     CrSDKInterface *crsdkInterface_;                            ///< Add an instance of CrSDKInterface
     std::thread monitoringThread;                               ///< Thread object for monitoring
-    std::atomic<bool> stopRequested{false};                     ///< A flag for stopping the server thread
+    // std::atomic<bool> stopRequested{false};                     ///< A flag for stopping the server thread
+    std::atomic<bool> &stopRequested;                           ///< A flag for stopping the server thread
     GpioPin *gpioPin;                                           ///< Declaration of GpioPin instance
 
     /**
@@ -163,5 +171,12 @@ private:
      * @param res HTTP response to be sent.
      */
     void handleUploadCameraSetting(const httplib::Request &req, httplib::Response &res);
+
+     /**
+     * @brief HTTP handler for Receives a request to exit the program.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void handleExit(const httplib::Request &req, httplib::Response &res);
 
 };    

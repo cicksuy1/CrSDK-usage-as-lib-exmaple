@@ -66,19 +66,18 @@ bool is_port_available(int port) {
     return available;
 }
 
-// Constructor for Server class with basic HTTPS server parameters
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), crsdkInterface_(crsdkInterface) 
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface) 
+    : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), stopRequested(stopRequested), crsdkInterface_(crsdkInterface) 
 {
   setupRoutes();
 }
 
-// Constructor for Server class with basic HTTPS server parameters with gpio
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, GpioPin* gpioP, CrSDKInterface *crsdkInterface) : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), gpioPin(gpioP), crsdkInterface_(crsdkInterface) 
+Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin* gpioP, CrSDKInterface *crsdkInterface) 
+    : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), stopRequested(stopRequested), gpioPin(gpioP), crsdkInterface_(crsdkInterface) 
 {
   setupRoutes();
 }
 
-// Setup HTTP routes
 void Server::setupRoutes()
 {
     server.Get("/", [this](const httplib::Request &req, httplib::Response &res){
@@ -112,6 +111,10 @@ void Server::setupRoutes()
     server.Get("/upload_camera_setting", [this](const httplib::Request &req, httplib::Response &res){ 
         handleUploadCameraSetting(req, res); 
     });
+
+    server.Get("/exit", [this](const httplib::Request &req, httplib::Response &res){ 
+        handleExit(req, res); 
+    });
 }
 
 void Server::setGpioPin(GpioPin *gpioPin)
@@ -119,7 +122,6 @@ void Server::setGpioPin(GpioPin *gpioPin)
     this->gpioPin = gpioPin;
 }
 
-// Start the server
 void Server::run()
 {
     try
@@ -798,5 +800,38 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
     {
         // Handle the exception and generate an error message
         spdlog::error("Get resolution Route Error: {}", e.what());
+    }
+}
+
+void Server::handleExit(const httplib::Request &req, httplib::Response &res)
+{
+    // Create a JSON object
+    json resolution_json;
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        spdlog::info("Program stopped..."); 
+        stopRequested.store(true);
+        
+        // Success message
+        resolution_json["message"] = "Successfully exit the program";
+        res.status = 200; // OK
+        
+        // Set the response content type to JSON
+        res.set_content(resolution_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Exit the program Error: {}", e.what());
+
+        // Error message
+        resolution_json["error"] = "Failed to exit the program";
+        res.status = 500; // Internal Server Error
+
+        // Set the response content type to JSON
+        res.set_content(resolution_json.dump(), "application/json");
     }
 }

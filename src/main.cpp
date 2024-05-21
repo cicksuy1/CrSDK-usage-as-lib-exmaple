@@ -389,7 +389,7 @@ int main()
     const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
                 
     // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-    Server server(host, PORT, cert_file, key_file, crsdk);
+    Server server(host, PORT, cert_file, key_file, stopRequested, crsdk);
 
     if(gpioPin)
     {
