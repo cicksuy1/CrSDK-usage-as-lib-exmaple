@@ -79,6 +79,7 @@ Once the server is running, you can send GET requests to the following endpoints
 | `/get_camera_mode<camera_id>`               | HTTPS handler for Receives a request to get camera mode.
 | `/download_camera_setting<camera_id>`       | HTTPS handler for download the camera setting file to PC.
 | `/upload_camera_setting<camera_id>`         | HTTPS handler for Receives a request to upload the camera setting file to Camera.
+|`/exit`                                      |  HTTPS handler for Receives a request to exit the program.
 
 
 **Note:** Refer to the CrSDK documentation for specific details and limitations regarding camera control functions.
