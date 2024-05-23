@@ -586,7 +586,7 @@ void CameraDevice::get_exposure_program_mode(std::promise<void>& prom, cli::text
     }
 
     // Log the current mode for debugging
-    spdlog::info("Mode after getting exposure program: {}", cameraMode);
+    // spdlog::info("Mode after getting exposure program: {}", cameraMode);
 
     // When done, set the promise
     prom.set_value();
