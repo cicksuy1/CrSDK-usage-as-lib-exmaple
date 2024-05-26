@@ -35,6 +35,12 @@ using json = nlohmann::json;
 
 #define BLACK_THRESHOLD 10.0
 
+// Macro to reverse the index
+#define REVERSE_INDEX(index) ((index) == 0 ? 1 : 0)
+
+// Macro to keep the index the same
+#define NORMAL_INDEX(index) (index)
+
 /**
  * @class Server
  * @brief Represents an HTTP server with optional RTSP streaming capabilities.

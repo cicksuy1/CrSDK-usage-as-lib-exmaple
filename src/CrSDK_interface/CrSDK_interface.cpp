@@ -102,7 +102,7 @@ bool CrSDKInterface::connectToCameras()
         for (CrInt32u i = 0; i < camera_list->GetCount(); ++i)
         {
             auto *camera_info = camera_list->GetCameraObjectInfo(i);
-            spdlog::info("Creating object for camera {}...", i + 1);
+            spdlog::info("Creating object for camera {}...", i);
             CameraDevicePtr camera = std::make_shared<cli::CameraDevice>(i + 1, camera_info);
             cameraList.push_back(camera);
 
@@ -195,7 +195,7 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         // Checking whether changing the ISO to automatic succeeded or failed
         if(!setManualIsoSuccess)
         {
-            spdlog::error("Setting the ISO to automatic failed");
+            spdlog::error("Setting the ISO for camera {} to automatic failed", cameraNumber);
             return false;
         }
 
@@ -213,7 +213,7 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         fut.wait();
 
         // Log the current mode for debugging
-        spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
+        spdlog::info("Current camera {} mode: {}", cameraNumber, cameraModes[cameraNumber]);
 
         // Checking whether the change of the camera's mode was successful.
         if (cameraModes[cameraNumber] == "m")
@@ -227,7 +227,7 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
     }
     catch (const std::exception &e)
     {
-        spdlog::error("An error occurred while trying to change the camera mode to M mode: {}", e.what());
+        spdlog::error("An error occurred while trying to change the camera {} mode to M mode: {}", cameraNumber, e.what());
         return false;
     }
 }
@@ -245,7 +245,7 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         // Checking whether changing the ISO to automatic succeeded or failed
         if(!setManualIsoSuccess)
         {
-            spdlog::error("Setting the ISO to automatic failed");
+            spdlog::error("Setting the ISO for camera {} to automatic failed", cameraNumber);
             return false;
         }
 
@@ -263,7 +263,7 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         fut.wait();
 
         // Log the current mode for debugging
-        spdlog::info("Current camera mode: {}", cameraModes[cameraNumber]);
+        spdlog::info("Current camera {} mode: {}", cameraNumber, cameraModes[cameraNumber]);
 
         // Checking whether the change of the camera's mode was successful.
         if (cameraModes[cameraNumber] == "p")
@@ -277,7 +277,7 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
     }
     catch (const std::exception &e)
     {
-        spdlog::error("An error occurred while trying to change the camera mode to P mode: {}", e.what());
+        spdlog::error("An error occurred while trying to change the camera {} mode to P mode: {}", cameraNumber, e.what());
         return false;
     }
 }
@@ -289,7 +289,7 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
         // Check if the camera is in manual mode
         if (cameraModes[cameraNumber] != "m")
         {
-            spdlog::error("Changing the camera brightness is not possible because the camera is not in manual mode.");
+            spdlog::error("Changing the camera {} brightness is not possible because the camera is not in manual mode.", cameraNumber);
             return false;
         }
 
@@ -335,7 +335,7 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
     }
     catch (const std::exception& e)
     {
-        spdlog::error("An error occurred while trying to change the brightness of the camera: {}", e.what());
+        spdlog::error("An error occurred while trying to change the brightness of the camera {}: {}", cameraNumber, e.what());
         return false;
     }
 }
@@ -347,7 +347,7 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
         // Check if the camera is in auto mode
         if (cameraModes[cameraNumber] != "p")
         {
-            spdlog::error("Changing the camera AF area position is not possible because the camera is not in auto mode.");
+            spdlog::error("Changing the camera {} AF area position is not possible because the camera is not in auto mode.", cameraNumber);
             return false;
         }
 
@@ -378,7 +378,7 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
     }
     catch (const std::exception& e)
     {
-        spdlog::error("An error occurred while trying to change the AF area position of the camera: {}", e.what());
+        spdlog::error("An error occurred while trying to change the AF area position of the camera {}: {}", cameraNumber, e.what());
         return false;
     }
 }
@@ -388,7 +388,7 @@ bool CrSDKInterface::getCamerasMode()
     try
     {
         // Get information about all cameras mode
-        for (CrInt32u i = 0; i < cameraList.size(); ++i)
+        for (CrInt32u i = 0; i < cameraList.size(); i++)
         {
             // Create a promise and future pair
             std::promise<void> prom;
@@ -404,7 +404,6 @@ bool CrSDKInterface::getCamerasMode()
             if (cameraModes[i] == "p" || cameraModes[i] == "m")
             {
                 spdlog::info("camera {} mode: {}", i, cameraModes[i]);
-                return true;
             }
             else
             {
@@ -412,10 +411,11 @@ bool CrSDKInterface::getCamerasMode()
                 return false;
             }
         }
+        return true;
     }
     catch (const std::exception &e)
     {
-        spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
+        spdlog::error("An error occurred while trying to get exposure program mode of the cameras: {}", e.what());
         return false;
     }
 }
@@ -439,7 +439,7 @@ bool CrSDKInterface::getCameraMode(int cameraNumber)
     }
     catch (const std::exception& e)
     {
-        spdlog::error("An error occurred while trying to get exposure program mode of the camera: {}", e.what());
+        spdlog::error("An error occurred while trying to get exposure program mode of the camera {}: {}", cameraNumber, e.what());
         return false;
     }
 }
@@ -590,18 +590,18 @@ bool CrSDKInterface::loadZoomAndFocusPosition(int cameraNumber)
        
         if(executePresetFocusSuccess)
         {
-            spdlog::info("Execute preset focus was successful");
+            spdlog::info("Execute preset focus for camera {} was successful", cameraNumber);
             return true;
         }
         else
         {
-            spdlog::error("Failed to execute preset focus");
+            spdlog::error("Failed to execute preset focus for camera {}", cameraNumber);
             return false;
         }
     }
     catch (const std::exception &e)
     {
-        spdlog::error("An error occurred while trying to to execute preset focus: {}", e.what());
+        spdlog::error("An error occurred while trying to to execute preset focus for camera {}: {}", cameraNumber, e.what());
         return false;
     }
 }

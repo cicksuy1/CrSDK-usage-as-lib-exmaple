@@ -348,7 +348,7 @@ bool CameraDevice::disconnect()
     // m_fingerprint.clear();  // Use as needed
     // m_userPassword.clear(); // Use as needed
     m_spontaneous_disconnection = true;
-    tout << "Disconnect from camera...\n";
+    spdlog::info("Disconnect from camera...");
     auto disconnect_status = SDK::Disconnect(m_device_handle);
     if (CR_FAILED(disconnect_status)) {
         tout << "Disconnect failed to initialize.\n";
@@ -1339,7 +1339,7 @@ bool CameraDevice::set_save_info() const
         , path, (char*)"", ImageSaveAutoStartNo);
 #else
     text path = fs::current_path().native();
-    tout << path.data() << '\n';
+    // tout << path.data() << '\n';
 
     auto save_status = SDK::SetSaveInfo(m_device_handle
         , const_cast<text_char*>(path.data()), TEXT(""), ImageSaveAutoStartNo);
@@ -4595,14 +4595,14 @@ void CameraDevice::OnConnected(SDK::DeviceConnectionVersioin version)
 {
     m_connected.store(true);
     text id(this->get_id());
-    tout << "Connected to " << m_info->GetModel() << " (" << id.data() << ")\n";
+    spdlog::info("Connected to {} ({})", m_info->GetModel(), id.data());
 }
 
 void CameraDevice::OnDisconnected(CrInt32u error)
 {
     m_connected.store(false);
     text id(this->get_id());
-    tout << "Disconnected from " << m_info->GetModel() << " (" << id.data() << ")\n";
+    spdlog::info("Disconnected from {} ({})", m_info->GetModel(), id.data());
     if ((false == m_spontaneous_disconnection) && (SDK::CrSdkControlMode_ContentsTransfer == m_modeSDK))
     {
         tout << "Please input '0' to return to the TOP-MENU\n";

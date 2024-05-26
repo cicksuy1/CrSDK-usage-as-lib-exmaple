@@ -33,8 +33,11 @@ using namespace std;
 std::atomic<bool> stopRequested(false);
 std::mutex resourceMutex;  // For thread safety during resource cleanup
 
-void signalHandler(int sig) {
-  if (sig == SIGINT) {
+void signalHandler(int sig) 
+{
+  if (sig == SIGINT) 
+  {
+    std::cout << "" << std::endl;
     spdlog::info("Program stopped..."); 
     stopRequested.store(true);
   }
@@ -225,6 +228,18 @@ std::string readIPAddressFromFile(const std::string &filePath)
     return ipAddress;
 }
 
+/**
+ * @brief Checks if the server is running by sending a simple GET request to the server.
+ *
+ * This function creates a new HTTP client with SSL support, specifies the CA certificate,
+ * and sends a GET request to the server. It checks the response status to determine if the 
+ * server is running. If the request fails or the server responds with a status other than 200,
+ * the function logs the appropriate error message and returns false. Otherwise, it logs that 
+ * the server is running and returns true.
+ *
+ * @param host The host address of the server.
+ * @return True if the server is running (responds with status 200), false otherwise.
+ */
 bool checkIfTheServerIsRunning(std::string host)
 {
   try 

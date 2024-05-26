@@ -291,6 +291,9 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
 
         int camera_id = std::stoi(camera_id_param);
 
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
@@ -314,7 +317,7 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
 
         if (success) {
             // Success message
-            spdlog::info("Changing the camera mode to M mode was successful");
+            spdlog::info("Changing the camera {} mode to P mode was successful", camera_id);
             resolution_json["message"] = "Successfully switched to P mode";
             res.status = 200; // OK
         } else {
@@ -360,6 +363,9 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
 
         int camera_id = std::stoi(camera_id_param);
 
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
@@ -383,7 +389,7 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
 
         if (success) {
             // Success message
-            spdlog::info("Changing the camera mode to M mode was successful");
+            spdlog::info("Changing the camera {} mode to M mode was successful", camera_id);
             resolution_json["message"] = "Successfully switched to M mode";
             res.status = 200; // OK
         } else {
@@ -429,6 +435,9 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
 
         int camera_id = std::stoi(camera_id_param);
 
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
@@ -443,7 +452,7 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
         if(crsdkInterface_->cameraModes[camera_id] != "m")
         {
             // Handling camera mode is not M.
-            spdlog::error("Changing the camera brightness is not possible because the camera is not M(manual) mode");
+            spdlog::error("Changing the camera {} brightness is not possible because the camera is not M(manual) mode", camera_id);
             resolution_json["error"] = "Changing the camera brightness is not possible because the camera is not M(manual) mode.";
             res.status = 405; // Method not allowed.
 
@@ -529,6 +538,9 @@ void Server::handleChangeAFAreaPosition(const httplib::Request &req, httplib::Re
         }
 
         int camera_id = std::stoi(camera_id_param);
+
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
 
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
@@ -648,6 +660,9 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
 
         int camera_id = std::stoi(camera_id_param);
 
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
@@ -709,6 +724,9 @@ void Server::handleDownloadCameraSetting(const httplib::Request &req, httplib::R
 
         int camera_id = std::stoi(camera_id_param);
 
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
             // Handling camera_id out of range
@@ -768,6 +786,9 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
         }
 
         int camera_id = std::stoi(camera_id_param);
+
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
 
         if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
         {
