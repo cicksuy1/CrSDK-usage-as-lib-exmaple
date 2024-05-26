@@ -4,6 +4,7 @@ CrSDKInterface::CrSDKInterface()
 {
     // Optionally initialize the vector elements here
     cameraModes.resize(MAX_CAMERAS); // Allocate space for 4 elements
+    loadSerialNumbersFromConfig("CamerasConfig.txt"); // Adjust the path if necessary
 }
 
 // CrSDKInterface::~CrSDKInterface()
@@ -19,6 +20,19 @@ CrSDKInterface::CrSDKInterface()
 //     }
 //     SDK::Release(); // Release the Camera Remote SDK resources
 // }
+
+void CrSDKInterface::loadSerialNumbersFromConfig(const std::string& configFilePath) {
+    try {
+        auto configMap = ConfigReader::readConfigFile(configFilePath);
+        leftCameraSerialNumber = configMap["LeftCameraSerialNumber"];
+        rightCameraSerialNumber = configMap["RightCameraSerialNumber"];
+        spdlog::info("Loaded serial numbers from config: Left = {}, Right = {}",
+                     leftCameraSerialNumber, rightCameraSerialNumber);
+    } catch (const std::exception &e) {
+        spdlog::error("Failed to load serial numbers from config file: {}", e.what());
+        // Handle the error (e.g., set default values or exit)
+    }
+}
 
 bool CrSDKInterface::initializeSDK()
 {
@@ -61,7 +75,9 @@ bool CrSDKInterface::enumerateCameraDevices()
 
     // Create asynchronous tasks for enum_status and ncams
     auto enumTask = std::async([this]()
-                               { return SDK::EnumCameraObjects(&camera_list); });
+    { 
+        return SDK::EnumCameraObjects(&camera_list); 
+    });
 
     // Wait for both tasks to finish
     auto enumStatus = enumTask.get();
@@ -136,9 +152,9 @@ bool CrSDKInterface::connectToCameras()
                 std::future<bool> connectionFuture = connectionPromise.get_future();
 
                 std::async([camera, &connectionPromise]()
-                           {
-                               connectionPromise.set_value(camera->is_connected()); // Set the value for the promise
-                           });
+                {
+                    connectionPromise.set_value(camera->is_connected()); // Set the value for the promise
+                });
 
                 // Wait for the asynchronous task to complete
                 bool connected = connectionFuture.get(); // Ensure we wait for completion
@@ -161,6 +177,20 @@ bool CrSDKInterface::connectToCameras()
                     spdlog::error("Failed to load Zoom and Focus Position Enable Preset");
                 }
                 camera_id++;
+            }
+        }
+
+         // Check the order of cameras and reverse if necessary
+        if (!cameraList.empty()) {
+            std::string firstCameraId = cameraList[0]->get_id();
+            std::cout << "Camera 0 Serial number: " << firstCameraId << std::endl;
+            std::string secondCameraId = cameraList.size() > 1 ? cameraList[1]->get_id() : "";
+            std::cout << "Camera 1 Serial number: " << secondCameraId << std::endl;
+
+            if (firstCameraId != LEFT_CAMERA_SERIAL_NUMBER) {
+                spdlog::info("Reversing the order of the cameras to match the expected serial numbers.");
+                std::reverse(cameraList.begin(), cameraList.end());
+                // std::reverse(cameraModes.begin(), cameraModes.end());
             }
         }
 

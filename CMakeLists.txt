@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.10)
 set(PROJECT_N CrSDK_HTTPS_Server)
 project(${PROJECT_N} VERSION 1.0)
 
-#set CXX
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -14,7 +14,7 @@ add_compile_options(-fsigned-char)
 # Include directories
 include_directories(include)
 
-# macro that gets all of the header containing directories. 
+# Macro that gets all of the header containing directories. 
 MACRO(header_directories return_list includes_base_folder extention )
     FILE(GLOB_RECURSE new_list ${includes_base_folder}/*.${extention})
     SET(dir_list "")
@@ -33,7 +33,7 @@ file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
 # This assumes the SonySDK folder is directly under the main project directory.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK)
 
-# using said macro.
+# Using said macro.
 header_directories(INCLUDES ${PROJECT_SOURCE_DIR}/include/ h)
 
 message("src files:")
@@ -67,15 +67,26 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
+# Find and link libusb
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+if(LIBUSB_FOUND)
+    include_directories(${LIBUSB_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_N} PRIVATE ${LIBUSB_LIBRARIES})
+    message(STATUS "libusb-1.0 found!")
+else()
+    message(FATAL_ERROR "libusb-1.0 not found. Please install it.")
+endif()
+
 # For httplib
 message(STATUS "\nSearching for httplib...")
 find_package(httplib REQUIRED)
 if(httplib_FOUND)
-  target_link_libraries(${PROJECT_N} ${httplib_LIBS})
+  target_link_libraries(${PROJECT_N} PRIVATE ${httplib_LIBS})
   message(STATUS "httplib found!")
 else()
   message(STATUS "httplib not found! Attempting to install...")
-  #Setting httplib
+  # Setting httplib
   set(EXTERNAL_PROJECT_NAME httplib)
   set(EXTERNAL_PROJECT_URL https://github.com/yhirose/cpp-httplib.git)
   # Define the project and its properties
@@ -93,7 +104,7 @@ endif()
 # For SPDLOG_LIBRARY
 find_package(spdlog REQUIRED)
 if(spdlog_FOUND)
-  target_link_libraries(${PROJECT_N} ${SPDLOG_LIBRARY})
+  target_link_libraries(${PROJECT_N} PRIVATE ${SPDLOG_LIBRARY})
   message(STATUS "spdlog found!")
 else()
   message(STATUS "spdlog not found, attempting to install...")
@@ -114,7 +125,7 @@ endif()
 message(STATUS "\nSearching for fmt...")
 find_package(fmt REQUIRED)
 if(fmt_FOUND)
-  target_link_libraries(${PROJECT_N} PUBLIC fmt::fmt)  # Link fmt publicly
+  target_link_libraries(${PROJECT_N} PRIVATE fmt::fmt)  # Link fmt privately
   message(STATUS "fmt found!")
 else()
   message(STATUS "fmtlib not found, attempting to install...")
@@ -142,7 +153,7 @@ endif()
 message(STATUS "\nSearching for Libevent...")
 find_package(Libevent REQUIRED)
 if(Libevent_FOUND)
-    target_link_libraries(${PROJECT_N} PUBLIC ${LIBEVENT_LIBRARIES})
+    target_link_libraries(${PROJECT_N} PRIVATE ${LIBEVENT_LIBRARIES})
     message(STATUS "Libevent found!")
 else()
     message(STATUS "Libevent not found!")
@@ -188,7 +199,7 @@ endif()
 message(STATUS "\nSearching for JetsonGPIO...")
 find_package(JetsonGPIO REQUIRED)
 if(JetsonGPIO_FOUND)
-    target_link_libraries(${PROJECT_N} PUBLIC JetsonGPIO::JetsonGPIO)
+    target_link_libraries(${PROJECT_N} PRIVATE JetsonGPIO::JetsonGPIO)
     message(STATUS "JetsonGPIO found!")
 else()
     message(STATUS "JetsonGPIO not found, attempting to install...")
@@ -206,11 +217,7 @@ else()
 endif()
 
 add_compile_options(-fsigned-char)
-target_link_libraries(${PROJECT_N} PUBLIC SonySDKLib)
-
-target_link_libraries(${PROJECT_N} PUBLIC stdc++fs)
-
-target_link_libraries(${PROJECT_N} PUBLIC -lpthread)
+target_link_libraries(${PROJECT_N} PRIVATE SonySDKLib stdc++fs pthread)
 
 list(APPEND src_files 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/libmonitor_protocol_pf.so  # File
@@ -226,5 +233,3 @@ add_custom_command(TARGET ${PROJECT_N} POST_BUILD
 )
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/include/SonySDK_files/CrAdapter DESTINATION ${CMAKE_BINARY_DIR}/)
-
-

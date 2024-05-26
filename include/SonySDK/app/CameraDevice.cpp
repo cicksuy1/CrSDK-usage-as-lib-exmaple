@@ -4595,7 +4595,7 @@ void CameraDevice::OnConnected(SDK::DeviceConnectionVersioin version)
 {
     m_connected.store(true);
     text id(this->get_id());
-    tout << "Connected to " << m_info->GetModel() << " (" << id.data() << ")\n";
+    spdlog::info("Connected to {} ({})", m_info->GetModel(), id.data());
 }
 
 void CameraDevice::OnDisconnected(CrInt32u error)

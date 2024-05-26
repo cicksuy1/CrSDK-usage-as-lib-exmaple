@@ -12,10 +12,19 @@
 #include <unistd.h>
 #include <future>
 #include <chrono>
+#include <libusb-1.0/libusb.h>
+#include <string>
+#include <thread>
+#include <unordered_map>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
+#include "../ConfigReader/ConfigReader.h"
+
+// Define camera Serial numcers as macros
+#define LEFT_CAMERA_SERIAL_NUMBER "D4698039CBED"   // Replace with the actual serial numbr for the left camera
+#define RIGHT_CAMERA_SERIAL_NUMBER "D4698038CBED"  // Replace with the actual serial numbr for the right camera
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
@@ -180,10 +189,16 @@ public:
     */
     bool loadZoomAndFocusPosition(int cameraNumber);
 
+    void loadSerialNumbersFromConfig(const std::string& configFilePath);
+
+
 // private:
     std::vector<cli::text> cameraModes; // No size argument here
     std::vector<CameraDevicePtr> cameraList;
     SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
+
+    std::string leftCameraSerialNumber;
+    std::string rightCameraSerialNumber;
 
 };
 

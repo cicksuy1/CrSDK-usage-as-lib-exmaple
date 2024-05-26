@@ -21,6 +21,7 @@
 #include "CrSDK_interface/CrSDK_interface.h"
 #include "https_server/https_server.h"
 #include "gpioPin/gpioPin.h"
+// #include "CameraSerialNumberManager/CameraSerialNumberManager.h"
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
@@ -229,22 +230,24 @@ bool checkIfTheServerIsRunning(std::string host)
 {
   try 
   {
-  // Create a new HTTP client with SSL and specify the CA certificate
-  httplib::SSLClient cli(host, PORT); // host, port
+    // Create a new HTTP client with SSL and specify the CA certificate
+    httplib::SSLClient cli(host, PORT); // host, port
 
-  // Use your CA bundle
-  cli.set_ca_cert_path("/jetson_ssl/client.crt");
+    // Use your CA bundle
+    cli.set_ca_cert_path("/jetson_ssl/client.crt");
 
-  // Disable cert verification
-  cli.enable_server_certificate_verification(false);
+    // Disable cert verification
+    cli.enable_server_certificate_verification(false);
 
-  // Perform a simple GET request
-  httplib::Result result = cli.Get("/");
+    // Perform a simple GET request
+    httplib::Result result = cli.Get("/");
 
-  if (!result) { // Check if the request failed
-      // Handle the error case (request failed)
-      spdlog::error("Error sending GET request");
-      return false;
+    // Check if the request failed
+    if (!result) 
+    { 
+        // Handle the error case (request failed)
+        spdlog::error("Error sending GET request");
+        return false;
     } 
     else 
     {
@@ -270,6 +273,7 @@ bool checkIfTheServerIsRunning(std::string host)
   { 
     // Handle the exception and determine if it indicates a server crash
     spdlog::error("Unexpected error in monitoring thread: {}", e.what());
+    return false;
   }
 }
 
@@ -283,6 +287,18 @@ int main()
     sa.sa_handler = signalHandler;
     sigfillset(&sa.sa_mask);
     sigaction(SIGINT, &sa, NULL);
+
+    // // Create an instance of the CameraSerialNumberManager class
+    // CameraSerialNumberManager *cameraSerialNumberManager = new CameraSerialNumberManager();
+
+    // std::string rightCameraSerialNumber = cameraSerialNumberManager->getRightCameraSerialNumber();
+    // std::string leftCameraSerialNumber = cameraSerialNumberManager->getLeftCameraSerialNumber();
+
+    // // Ensure CameraSerialNumberManager resources are released before proceeding
+    // delete cameraSerialNumberManager;
+    // cameraSerialNumberManager = nullptr;
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // Create an instance of the GpioPin class
     GpioPin *gpioPin = new GpioPin(DEFAULT_PIN);
@@ -322,7 +338,7 @@ int main()
     }
 
     CrSDKInterface *crsdk = new CrSDKInterface();
-    
+
     // Initializes the Camera Remote SDK.
     bool initSuccess =  crsdk->initializeSDK();
 
