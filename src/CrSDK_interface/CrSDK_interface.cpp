@@ -241,8 +241,8 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
 
-        // Set the ISO to automatic.
-        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10);
+        // Set the ISO value to 12800
+        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(33);
 
         // Checking whether changing the ISO to automatic succeeded or failed
         if(!setManualIsoSuccess)
@@ -307,9 +307,9 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
 
         if (userBrightnessInput <= 33)
         {
-            // Set shutter speed (0-33) and automatic ISO
+            // Set shutter speed (0-33) and ISO value to 12800
             setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(userBrightnessInput);
-            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10); // Assuming 10 is the code for auto ISO
+            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(33); 
         }
         else
         {

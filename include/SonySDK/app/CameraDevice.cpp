@@ -1968,6 +1968,7 @@ bool CameraDevice::get_af_area_position_bool()
         }
         SDK::ReleaseLiveViewProperties(m_device_handle, lvProperty);
     }
+    return true;
 }
 
 void CameraDevice::set_af_area_position()
