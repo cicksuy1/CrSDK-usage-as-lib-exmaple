@@ -61,11 +61,11 @@ GpioPin::~GpioPin()
     {
         // Clean up and release the GPIO pin
         GPIO::cleanup();
-        spdlog::info("Clean up and release the GPIO pin was successful");
+        spdlog::info("Clean up and release the GPIO pin was successful.");
     }
     catch(const std::exception& e)
     {
-        spdlog::error("An error occurred when trying to Clean up and release the GPIO pin: {}", e.what());
+        spdlog::error("An error occurred when trying to Clean up and release the GPIO pin: {}.", e.what());
     }
 }
 

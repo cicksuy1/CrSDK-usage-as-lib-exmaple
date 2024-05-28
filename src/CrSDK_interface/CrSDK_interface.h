@@ -59,6 +59,13 @@ public:
     bool disconnectToCameras();
 
     /**
+     * @brief Release objects of the cameras in case they exist.
+     * @return `true` if the release of the cameras' objects was successful, `false` otherwise.
+     * @throws std::exception If an error occurs during release of the cameras' objects.
+    */
+    bool releaseCameras();
+
+    /**
      * @brief Releases the Camera Remote SDK camera list object.
      *
      * This function checks if the `camera_list` member variable is not a null pointer. If

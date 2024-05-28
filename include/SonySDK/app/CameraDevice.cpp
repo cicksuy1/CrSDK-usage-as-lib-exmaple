@@ -4602,7 +4602,7 @@ void CameraDevice::OnDisconnected(CrInt32u error)
 {
     m_connected.store(false);
     text id(this->get_id());
-    spdlog::info("Disconnected from {} ({})", m_info->GetModel(), id.data());
+    spdlog::info("Disconnected from {} ({}).", m_info->GetModel(), id.data());
     if ((false == m_spontaneous_disconnection) && (SDK::CrSdkControlMode_ContentsTransfer == m_modeSDK))
     {
         tout << "Please input '0' to return to the TOP-MENU\n";
@@ -4925,8 +4925,9 @@ void CameraDevice::OnError(CrInt32u error)
     text msg = get_message_desc(error);
     if (!msg.empty()) {
         // output is 2 line
-        tout << std::endl << msg.data() << std::endl;
-        tout << m_info->GetModel() << " (" << id.data() << ")" << std::endl;
+        // tout << std::endl << msg.data() << std::endl;
+        spdlog::error("{}", msg.data());
+        // tout << m_info->GetModel() << " (" << id.data() << ")" << std::endl;
         if (SDK::CrError_Connect_TimeOut == error) {
             // append 1 line
             // tout << "Please input '0' after Connect camera" << std::endl;
@@ -4946,7 +4947,7 @@ void CameraDevice::OnError(CrInt32u error)
             m_fingerprint.clear();
             m_userPassword.clear();
         }
-        tout << "Please input '0' to return to the TOP-MENU\n";
+        // tout << "Please input '0' to return to the TOP-MENU\n";
     }
 }
 

@@ -372,13 +372,29 @@ int main()
     if(!connectSuccess)
     {
         // Handle connection failure
-        spdlog::error("Failed to connect to cameras. Exiting...");
+        spdlog::error("Failed to connect to cameras.");
         crsdk->disconnectToCameras();
+        crsdk->releaseCameras();
         crsdk->releaseCameraList();
+
+        // Enumerates connected camera devices.
+        spdlog::info("Trying to reenumerate to the cameras...");
+        bool reenumerateSuccess =  crsdk->enumerateCameraDevices();
+
+        // Creating a reconnection to the cameras after enumerate Camera Devices.
+        spdlog::info("Trying to reconnect to the cameras...");
+        bool reconnectSuccess = crsdk->connectToCameras();
+        if(!reconnectSuccess)
+        {
+          crsdk->disconnectToCameras();
+          crsdk->releaseCameras();
+          crsdk->releaseCameraList();
+        }
+
         crsdk->releaseCameraRemoteSDK();
 
         delete crsdk;
-        spdlog::info("Deleting the instance of the CrSDKInterface class was successful");
+        spdlog::info("Deleting the instance of the CrSDKInterface class was successful.");
 
         return EXIT_FAILURE;
     }
@@ -391,6 +407,7 @@ int main()
         // Handle get cameras mode failure
         spdlog::error("Failed to get cameras mode. Exiting.");
         crsdk->disconnectToCameras();
+        crsdk->releaseCameras();
         crsdk->releaseCameraList();
         crsdk->releaseCameraRemoteSDK();
         delete crsdk;
@@ -456,16 +473,20 @@ int main()
     serverThread.join();  // Wait for completion before continuing
 
     {
-        std::lock_guard<std::mutex> lock(resourceMutex);  // Ensure thread safety during cleanup
-        
-        // Release resources acquired in the constructor or during object lifetime
-        crsdk->disconnectToCameras();
+      // Ensure thread safety during cleanup
+      std::lock_guard<std::mutex> lock(resourceMutex);  
+      
+      // Disconnecting from the cameras before the end of the program.
+      crsdk->disconnectToCameras();
 
-        // Release resources acquired in the constructor or during object lifetime.
-        crsdk->releaseCameraList();
+      // Freeing resources acquired in the constructor or during the lifetime of the camera objects.
+      crsdk->releaseCameras();
 
-        // Releases resources associated with the Camera Remote SDK.
-        crsdk->releaseCameraRemoteSDK();
+      // Release resources acquired in the constructor or during object lifetime.
+      crsdk->releaseCameraList();
+
+      // Releases resources associated with the Camera Remote SDK.
+      crsdk->releaseCameraRemoteSDK();
     }
     
     delete crsdk;

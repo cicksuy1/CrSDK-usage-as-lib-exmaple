@@ -109,7 +109,9 @@ bool CrSDKInterface::connectToCameras()
             if (!camera->is_connected())
             {
                 auto connectTask = std::async(std::launch::async, [camera]()
-                                              { return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON); });
+                { 
+                    return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON); 
+                });
 
                 // Wait for both tasks to finish
                 bool connectStatus = connectTask.get();
@@ -122,7 +124,7 @@ bool CrSDKInterface::connectToCameras()
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         bool allConnected = true;
 
@@ -136,9 +138,9 @@ bool CrSDKInterface::connectToCameras()
                 std::future<bool> connectionFuture = connectionPromise.get_future();
 
                 std::async([camera, &connectionPromise]()
-                           {
-                               connectionPromise.set_value(camera->is_connected()); // Set the value for the promise
-                           });
+                {
+                    connectionPromise.set_value(camera->is_connected()); // Set the value for the promise
+                });
 
                 // Wait for the asynchronous task to complete
                 bool connected = connectionFuture.get(); // Ensure we wait for completion
@@ -200,7 +202,7 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         }
 
         // Introduce a small delay to allow the camera to process the mode change
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Create a promise and future pair
         std::promise<void> prom;
@@ -250,7 +252,7 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         }
 
         // Introduce a small delay to allow the camera to process the mode change
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Create a promise and future pair
         std::promise<void> prom;
@@ -406,7 +408,24 @@ bool CrSDKInterface::getCamerasMode()
                 spdlog::info("camera {} mode: {}", i, cameraModes[i]);
             }
             else
-            {
+            {   
+                // switch to P mode logic...
+                bool success = false;
+                spdlog::info("switch to P mode...");
+                success = switchToPMode(i);
+
+                if (success) 
+                {
+                    // Success message
+                    spdlog::info("Changing the camera {} mode to P mode was successful", i);
+                    spdlog::info("camera {} mode: {}", i, cameraModes[i]);
+                    return true;
+                } 
+                else 
+                {
+                    // Error message
+                    spdlog::error("Failed to change camera mode to P mode");
+                }                
                 spdlog::error("Camera mode number {} is currently unavailable", i);
                 return false;
             }
@@ -495,41 +514,71 @@ bool CrSDKInterface::disconnectToCameras()
             return true;
         }
 
-        for (auto &camera : cameraList)
+        std::vector<std::future<bool>> disconnectFutures;
+        for (auto& camera : cameraList)
         {
             if (camera && camera->is_connected())
             {
-                auto disconnect_status = camera->disconnect();
-                if (!disconnect_status)
-                {
-                    spdlog::error("Failed to disconnect camera.");
-                    return false;
-                }
+                // Start the disconnect operation asynchronously
+                disconnectFutures.push_back(std::async(std::launch::async, [camera]() {
+                    return camera->disconnect(); 
+                }));
             }
         }
 
-        for (auto &camera : cameraList)
+        // Wait for all disconnect operations to complete
+        for (auto& future : disconnectFutures)
         {
-            auto future = std::async(std::launch::async, [&]()
-                                     {
-                                         camera->release(); // Release the camera device
-                                     });
-
-            auto status = future.wait_for(std::chrono::seconds(3)); // Timeout for resource release
-
-            if (status == std::future_status::timeout)
+            if (!future.get()) // Wait for the result and check if it succeeded
             {
-                spdlog::error("Timeout while releasing camera device resources.");
-                return false;
+                spdlog::error("Failed to disconnect a camera.");
+                return false; 
             }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
         spdlog::info("Successfully disconnected all cameras.");
         return true;
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         spdlog::error("Error while disconnecting cameras: {}", e.what());
+        return false;
+    }
+}
+
+bool CrSDKInterface::releaseCameras()
+{
+    try
+    {
+        // Get information about all cameras mode
+        for (CrInt32u i = 0; i < cameraList.size(); i++)
+        {
+            if(cameraList[i])
+            {
+                spdlog::info("Camera {} object exists, releasing...", i);
+
+                 auto future = std::async(std::launch::async, [&]()
+                {
+                    cameraList[i]->release(); // Release the camera device
+                });
+
+                auto status = future.wait_for(std::chrono::seconds(3)); // Timeout for resource release
+
+                if (status == std::future_status::timeout)
+                {
+                    spdlog::error("Timeout while releasing camera {} device resources.", i);
+                    return false;
+                }
+            }
+        }
+        spdlog::info("Released resources of all camera devices successfully.");
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        spdlog::error("Failed to release all camera device resources: {}", e.what());
         return false;
     }
 }
@@ -555,9 +604,9 @@ bool CrSDKInterface::releaseCameraRemoteSDK()
     try
     {
         std::future<void> future = std::async(std::launch::async, [&]()
-                                              {
-                                                  SDK::Release(); // Release the Camera Remote SDK resources
-                                              });
+        {
+            SDK::Release(); // Release the Camera Remote SDK resources
+        });
 
         // Wait for the SDK release to complete, with a timeout
         auto status = future.wait_for(std::chrono::seconds(3)); // Adjust the timeout as needed
