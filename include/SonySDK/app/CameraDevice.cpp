@@ -1531,18 +1531,18 @@ void CameraDevice::set_exposure_program_mode()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
-void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
+bool CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 {
-
-    if(cameraMode == "p"){
+    if(cameraMode == "p")
+    {
         spdlog::warn("The camera is already in P mode");
-        return;
+        return true;
     }
 
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
         tout << "Exposure Program Mode is not writable\n";
-        return;
+        return false;
     }
 
     auto& values = m_prop.exposure_program_mode.possible;
@@ -1558,6 +1558,33 @@ void CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 
     // Update the flag of the camera mode
     cameraMode = 'p';
+    return true;
+}
+
+bool CameraDevice::set_exposure_program_P_Auto_mode( cli::text& cameraMode)
+{
+    if (1 != m_prop.exposure_program_mode.writable) {
+        // Not a settable property
+        tout << "Exposure Program Mode is not writable\n";
+        return false;
+    }
+
+    auto& values = m_prop.exposure_program_mode.possible;
+
+    int selected_index = 1;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Update the flag of the camera mode
+    cameraMode = 'p_Auto';
+    return true;
 }
 
 void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
@@ -1945,7 +1972,7 @@ bool CameraDevice::get_af_area_position_bool()
             if (0 == sizVal || nullptr == pFrameInfo) 
             {
                 spdlog::error("FocusFrameInfo nothing");
-                return false;
+                // return false;
             }
             else 
             {
@@ -1962,7 +1989,7 @@ bool CameraDevice::get_af_area_position_bool()
                         lvprop.xDenominator, lvprop.yDenominator,
                         lvprop.xNumerator, lvprop.yNumerator);
                       
-                    spdlog::info("{}", buff);
+                    // spdlog::info("{}", buff);
                 }
             }
         }
@@ -2078,10 +2105,55 @@ void CameraDevice::set_af_area_position()
 
 bool CameraDevice::set_manual_af_area_position(int x_y)
 {
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_FocusArea);
+    prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    auto& values = m_prop.focus_area.possible;
+    if(find(values.begin(), values.end(), SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) != values.end()) 
+    {
+        prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+    }
+    else 
+    {
+        spdlog::error("Focus Area: Flexible_Spot_S is invalid.");
+        spdlog::error("Please confirm Focus Area Limit Setting in Camera Menu.");
+        return false;
+    }
+
+    bool execStat = false;
+    int i = 0;
+    SDK::CrError err_expromode;
+
+    auto err_prop = SDK::SetDeviceProperty(m_device_handle, &prop);
+    execStat = false;
+    while (i < 5)
+    {
+        err_expromode = SDK::SetDeviceProperty(m_device_handle, &prop);
+        if (CR_FAILED(err_prop)) {
+            tout << "Focus Area FAILED\n";
+            return false;
+        }
+        std::this_thread::sleep_for(1000ms);
+        get_focus_area();
+        if (m_prop.focus_area.current == SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) {
+            execStat = true;
+            break;
+        }
+        i++;
+    }
+    if (false == execStat)
+    {
+        spdlog::error("Focus Area FAILED");
+        return false;
+    }
     bool getAfAreaPosition = get_af_area_position_bool();
+
     if(getAfAreaPosition)
     {
         execute_pos_xy(SDK::CrDevicePropertyCode::CrDeviceProperty_AF_Area_Position, x_y);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         return true;
     }
     else

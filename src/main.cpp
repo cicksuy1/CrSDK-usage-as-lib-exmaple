@@ -339,7 +339,7 @@ int main()
     CrSDKInterface *crsdk = new CrSDKInterface();
     
     // Initializes the Camera Remote SDK.
-    bool initSuccess =  crsdk->initializeSDK();
+    bool initSuccess = crsdk->initializeSDK();
 
     if(!initSuccess)
     {

@@ -342,6 +342,49 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
     }
 }
 
+// bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
+// {
+//     try
+//     {
+//         // Check if the camera is in auto mode
+//         if (cameraModes[cameraNumber] != "p")
+//         {
+//             spdlog::error("Changing the camera {} AF area position is not possible because the camera is not in auto mode.", cameraNumber);
+//             return false;
+//         }
+
+//         // Validate the user input for X and Y coordinates
+//         if (x < 0 || x > 639)
+//         {
+//             spdlog::error("Error: The selected X value is out of range.");
+//             return false;
+//         }
+
+//         if (y < 0 || y > 479)
+//         {
+//             spdlog::error("Error: The selected Y value is out of range.");
+//             return false;
+//         }
+
+//         int x_y = (x << 16) | y;
+
+//         // Attempt to set the AF area position
+//         if (!cameraList[cameraNumber]->set_manual_af_area_position(x_y))
+//         {
+//             spdlog::error("Failed to set the AF area position.");
+//             return false;
+//         }
+
+//         spdlog::info("Successfully set the AF area position.");
+//         return true;
+//     }
+//     catch (const std::exception& e)
+//     {
+//         spdlog::error("An error occurred while trying to change the AF area position of the camera {}: {}", cameraNumber, e.what());
+//         return false;
+//     }
+// }
+
 bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 {
     try
@@ -351,7 +394,7 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
         {
             spdlog::error("Changing the camera {} AF area position is not possible because the camera is not in auto mode.", cameraNumber);
             return false;
-        }
+        } 
 
         // Validate the user input for X and Y coordinates
         if (x < 0 || x > 639)
@@ -368,15 +411,71 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 
         int x_y = (x << 16) | y;
 
-        // Attempt to set the AF area position
-        if (!cameraList[cameraNumber]->set_manual_af_area_position(x_y))
+        spdlog::info("change the camera {} AF area position...", cameraNumber);
+
+        // Create a future to run the asynchronous function to change to P_Auto mode
+        std::future<bool> changeToPModeFuture = std::async(std::launch::async, [=]() 
         {
-            spdlog::error("Failed to set the AF area position.");
+            return cameraList[cameraNumber]->set_exposure_program_P_Auto_mode(cameraModes[cameraNumber]);
+        });
+
+        // Wait for the asynchronous function to complete and get the result
+        bool changeModeStatus = changeToPModeFuture.get();
+
+        if (!changeModeStatus) 
+        {
+            spdlog::error("Failed to change the camera {} mode to P_Auto mode.", cameraNumber);
             return false;
         }
 
-        spdlog::info("Successfully set the AF area position.");
-        return true;
+        spdlog::info("change the camera {} mode to P_Auto mode succeeded", cameraNumber);
+
+        // Introduce a small delay to allow the camera to process the mode change
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        bool setAFAreeaPositionSuccess = true;
+
+        // Attempt to set the AF area position
+        std::future<bool> setAFPositionFuture = std::async(std::launch::async, [=]() 
+        {
+            return cameraList[cameraNumber]->set_manual_af_area_position(x_y);
+        });
+
+        // Wait for the asynchronous function to complete and get the result
+        bool setAFPositionStatus = setAFPositionFuture.get();
+
+        if (!setAFPositionStatus)
+        {
+            spdlog::error("Failed to set the camera {} AF area position.", cameraNumber);
+            setAFAreeaPositionSuccess = false;
+        }
+
+        // Create a future to run the asynchronous function to change to Movie_P mode
+        std::future<bool> changeToMovieModeFuture = std::async(std::launch::async, [=]() 
+        {
+            return cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
+        });
+
+        // Wait for the asynchronous function to complete and get the result
+        changeModeStatus = changeToMovieModeFuture.get();
+
+        if (!changeModeStatus) 
+        {
+            spdlog::error("Failed to change the camera {} mode to Movie_P mode.", cameraNumber);
+            return false;
+        }
+
+        spdlog::info("change the camera {} mode back to Movie_P mode succeeded", cameraNumber);
+
+        // Introduce a small delay to allow the camera to process the mode change
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        if(setAFAreeaPositionSuccess)
+        {
+            spdlog::info("Successfully set the camera {} AF area position.", cameraNumber);
+        } 
+
+        return setAFAreeaPositionSuccess;
     }
     catch (const std::exception& e)
     {
@@ -410,24 +509,29 @@ bool CrSDKInterface::getCamerasMode()
             else
             {   
                 // switch to P mode logic...
-                bool success = false;
-                spdlog::info("switch to P mode...");
-                success = switchToPMode(i);
+                spdlog::info("The camera mode is not correct, change the mode to P...");
+               
+                // Create a future to run the asynchronous function to change to Movie_P mode
+                std::future<bool> changeToMovieModeFuture = std::async(std::launch::async, [=]() 
+                {
+                    return cameraList[i]->set_exposure_program_P_mode(cameraModes[i]);
+                });
 
-                if (success) 
+                // Wait for the asynchronous function to complete and get the result
+                bool changeModeStatus = changeToMovieModeFuture.get();
+
+                if (!changeModeStatus) 
+                {
+                    spdlog::error("Failed to change the camera {} mode to Movie_P mode.", i);
+                    return false;
+                }
+                else                
                 {
                     // Success message
                     spdlog::info("Changing the camera {} mode to P mode was successful", i);
                     spdlog::info("camera {} mode: {}", i, cameraModes[i]);
                     return true;
-                } 
-                else 
-                {
-                    // Error message
-                    spdlog::error("Failed to change camera mode to P mode");
-                }                
-                spdlog::error("Camera mode number {} is currently unavailable", i);
-                return false;
+                }              
             }
         }
         return true;

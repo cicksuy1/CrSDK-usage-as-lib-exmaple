@@ -139,7 +139,8 @@ public:
     bool set_manual_shutter_speed_bool(int userInput);
     void set_position_key_setting();
     void set_exposure_program_mode();
-    void set_exposure_program_P_mode( cli::text& cameraMode);
+    bool set_exposure_program_P_mode( cli::text& cameraMode);
+    bool set_exposure_program_P_Auto_mode( cli::text& cameraMode);
     void set_exposure_program_M_mode( cli::text& cameraMode);
     void set_still_capture_mode();
     void set_focus_mode();
