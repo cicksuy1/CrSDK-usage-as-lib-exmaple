@@ -178,6 +178,20 @@ private:
      */
     void handleUploadCameraSetting(const httplib::Request &req, httplib::Response &res);
 
+    /**
+     * @brief HTTP handler for Receives a request to get F-number.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void handleGetFnumber(const httplib::Request &req, httplib::Response &res);
+
+    /**
+     * @brief HTTP handler for Receives a request to set F-number.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void handleSetFnumber(const httplib::Request &req, httplib::Response &res);
+
      /**
      * @brief HTTP handler for Receives a request to exit the program.
      * @param req HTTP request received.

@@ -131,6 +131,9 @@ public:
     bool get_focus_position_setting();
 
     void set_aperture();
+    bool set_manual_aperture(int FnumberValue);
+    bool get_manual_aperture();
+    cli::text get_manual_aperture_str();
     void set_iso();
     bool set_manual_iso_bool(int userInput);
     bool set_save_info() const;
@@ -141,7 +144,7 @@ public:
     void set_exposure_program_mode();
     bool set_exposure_program_P_mode( cli::text& cameraMode);
     bool set_exposure_program_P_Auto_mode( cli::text& cameraMode);
-    void set_exposure_program_M_mode( cli::text& cameraMode);
+    bool set_exposure_program_M_mode( cli::text& cameraMode);
     void set_still_capture_mode();
     void set_focus_mode();
     void set_focus_area();

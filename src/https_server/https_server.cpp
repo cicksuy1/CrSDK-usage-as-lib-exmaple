@@ -112,6 +112,14 @@ void Server::setupRoutes()
         handleUploadCameraSetting(req, res); 
     });
 
+    server.Get("/get_f_number", [this](const httplib::Request &req, httplib::Response &res){ 
+        handleGetFnumber(req, res); 
+    });
+
+    server.Get("/set_f_number", [this](const httplib::Request &req, httplib::Response &res){ 
+        handleSetFnumber(req, res); 
+    });
+
     server.Get("/exit", [this](const httplib::Request &req, httplib::Response &res){ 
         handleExit(req, res); 
     });
@@ -159,7 +167,8 @@ void Server::run()
     }
 }
 
-bool Server::stopServer(){
+bool Server::stopServer()
+{
     try
     {
         spdlog::info("stop server...");
@@ -175,7 +184,8 @@ bool Server::stopServer(){
     }
 }
 
-void Server::startMonitoringThread() {
+void Server::startMonitoringThread() 
+{
 
     // std::this_thread::sleep_for(std::chrono::seconds(0));
     monitoringThread = std::thread([this]() {
@@ -236,7 +246,8 @@ void Server::startMonitoringThread() {
     );
 }
 
-void Server::restartServer() {
+void Server::restartServer() 
+{
     // Wait some time before restarting (to prevent flooding errors)
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -246,7 +257,8 @@ void Server::restartServer() {
     spdlog::info("Server initialization succeeded");
 }
 
-void Server::handleIndicator(const httplib::Request &req, httplib::Response &res) {
+void Server::handleIndicator(const httplib::Request &req, httplib::Response &res) 
+{
   try {
     // Enable CORS
     res.set_header("Access-Control-Allow-Origin", "*");  // Adjust for production
@@ -821,6 +833,166 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
     {
         // Handle the exception and generate an error message
         spdlog::error("Get resolution Route Error: {}", e.what());
+    }
+}
+
+void Server::handleGetFnumber(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        // Create a JSON object
+        json resolution_json;
+
+        // Check if the query parameter 'camera_id' is present
+        auto camera_id_param = req.get_param_value("camera_id");
+
+        if (camera_id_param.empty())
+        {
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        int camera_id = std::stoi(camera_id_param);
+
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
+        {
+            // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
+            res.status = 400; // Bad Request
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        // Get F-number setting logic...
+        std::string Fnumber = crsdkInterface_->getFnumber(camera_id);
+
+        if (!Fnumber.empty()) 
+        {
+            // Success message
+            resolution_json["message"] = "Geting the index of the f-number was successful";
+            resolution_json["f-number"] = Fnumber;
+            res.status = 200; // OK
+        } 
+        else 
+        {
+            // Error message
+            resolution_json["error"] = "Failed to geting the index of the f-number";
+            res.status = 500; // Internal Server Error
+        }
+
+        // Set the response content type to JSON
+        res.set_content(resolution_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Get F-number Route Error: {}", e.what());
+    }
+}
+
+void Server::handleSetFnumber(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        // Create a JSON object
+        json resolution_json;
+
+        // Check if the query parameter 'camera_id' is present
+        auto camera_id_param = req.get_param_value("camera_id");
+
+        if (camera_id_param.empty())
+        {
+            // Handle missing camera_id.
+            resolution_json["error"] = "Missing camera_id parameter.";
+            res.status = 400; // Bad Request.
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        int camera_id = std::stoi(camera_id_param);
+
+        // Use the macro to get the reversed index
+        camera_id = REVERSE_INDEX(camera_id);
+
+        if(camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
+        {
+            // Handling camera_id out of range
+            resolution_json["error"] = "Camera_id out of range.";
+            res.status = 400; // Bad Request
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+
+        // Check if the query parameters F-number value are present.
+        auto f_number_value_param = req.get_param_value("f_number_value");
+
+        if (f_number_value_param.empty())
+        {
+            // Handle missing parameters
+            resolution_json["error"] = "Missing required parameters.";
+            res.status = 400; // Bad Request
+
+            // Set the response content type to JSON
+            res.set_content(resolution_json.dump(), "application/json");
+            return;
+        }
+        
+        // Convert the parameters to numbers.
+        int fNumberValue = std::stoi(f_number_value_param);
+
+        // Treatment in case the F-number value entered is incorrect.
+        if (fNumberValue < 0 || fNumberValue > 21)
+        {
+            // Error message
+            resolution_json["error"] = "the F-number value entered is incorrect.";
+            res.status = 405; // Method not allowed.
+        }
+        else
+        {
+            // change the F-number value logic...
+            bool success = crsdkInterface_->setFnumber(camera_id, fNumberValue);
+
+            if (success)
+            {
+                // Success message
+                resolution_json["message"] = "Changing the index of the f-number was successful";
+                res.status = 200; // OK
+            } 
+            else 
+            {
+                // Error message
+                resolution_json["error"] = "Failed to change the index of the f-number";
+                res.status = 500; // Internal Server Error
+            }
+        }
+
+        // Set the response content type to JSON
+        res.set_content(resolution_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Set F-number Route Error: {}", e.what());
     }
 }
 

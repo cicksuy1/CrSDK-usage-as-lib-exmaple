@@ -47,6 +47,7 @@ namespace fs = std::filesystem;
 #include <unistd.h>
 #include <iostream>
 #include <cstdlib>
+#include <spdlog/fmt/bundled/core.h>
 using namespace std;
 
 
@@ -860,7 +861,6 @@ bool CameraDevice::get_playback_media()
     return true;
 }
 
-
 bool CameraDevice::get_gain_base_sensitivity()
 {
     load_properties();
@@ -1258,6 +1258,62 @@ void CameraDevice::set_aperture()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+bool CameraDevice::set_manual_aperture(int FnumberValue)
+{
+    if (1 != m_prop.f_number.writable) {
+        // Not a settable property
+        spdlog::error("Aperture is not writable");
+        return false;
+    }
+
+    auto& values = m_prop.f_number.possible;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_FNumber);
+    prop.SetCurrentValue(values[FnumberValue]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    return true;
+}
+
+bool CameraDevice::get_manual_aperture()
+{
+    try
+    {
+        load_properties();
+        float formattedFNumber = static_cast<float>(m_prop.f_number.current) / 100.0f; // Convert and format
+        spdlog::info("F-number: {:.1f}", formattedFNumber); // Log with one decimal place  
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+}
+
+cli::text CameraDevice::get_manual_aperture_str() 
+{
+    try 
+    {
+        load_properties();
+        float formattedFNumber = static_cast<float>(m_prop.f_number.current) / 100.0f;
+
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << formattedFNumber;
+        return oss.str();
+    } 
+    catch (const std::exception& e) 
+    {
+        spdlog::error("Error getting F-number: {}", e.what());
+        return "";
+    }
+}
+
 void CameraDevice::set_iso()
 {
     if (1 != m_prop.iso_sensitivity.writable) {
@@ -1587,17 +1643,17 @@ bool CameraDevice::set_exposure_program_P_Auto_mode( cli::text& cameraMode)
     return true;
 }
 
-void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
+bool CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 {
     if(cameraMode == "m"){
         spdlog::warn("The camera is already in M mode");
-        return;
+        return true;
     }
 
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
         tout << "Exposure Program Mode is not writable\n";
-        return;
+        return false;
     }
 
     auto& values = m_prop.exposure_program_mode.possible;
@@ -1613,6 +1669,7 @@ void CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 
     // Update the flag of the camera mode
     cameraMode = 'm';
+    return true;
 }
 
 void CameraDevice::set_still_capture_mode()

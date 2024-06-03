@@ -187,8 +187,24 @@ public:
     */
     bool loadZoomAndFocusPosition(int cameraNumber);
 
+    /**
+     * @brief Get the camera's F-number settings.
+     * @param cameraNumber The number of the camera that the user wants to get the camera's F-number settings.
+     * @return The camera F-number string (if successful).
+    */
+    cli::text getFnumber(int cameraNumber);
+    
+    /**
+     * @brief Set the camera's F-number settings.
+     * @param cameraNumber The number of the camera that the user wants to set the camera's F-number settings.
+     * @param FnumberValue The F-number value selected by the user
+     * @return True if et the camera's F-number settings was successful, false otherwise.
+    */
+    bool setFnumber(int cameraNumber, int FnumberValue);
+
 // private:
     std::vector<cli::text> cameraModes; // No size argument here
+    // std::vector<cli::text> camerasFnumber; // No size argument here 
     std::vector<CameraDevicePtr> cameraList;
     SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
 

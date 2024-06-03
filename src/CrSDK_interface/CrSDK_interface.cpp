@@ -342,49 +342,6 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
     }
 }
 
-// bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
-// {
-//     try
-//     {
-//         // Check if the camera is in auto mode
-//         if (cameraModes[cameraNumber] != "p")
-//         {
-//             spdlog::error("Changing the camera {} AF area position is not possible because the camera is not in auto mode.", cameraNumber);
-//             return false;
-//         }
-
-//         // Validate the user input for X and Y coordinates
-//         if (x < 0 || x > 639)
-//         {
-//             spdlog::error("Error: The selected X value is out of range.");
-//             return false;
-//         }
-
-//         if (y < 0 || y > 479)
-//         {
-//             spdlog::error("Error: The selected Y value is out of range.");
-//             return false;
-//         }
-
-//         int x_y = (x << 16) | y;
-
-//         // Attempt to set the AF area position
-//         if (!cameraList[cameraNumber]->set_manual_af_area_position(x_y))
-//         {
-//             spdlog::error("Failed to set the AF area position.");
-//             return false;
-//         }
-
-//         spdlog::info("Successfully set the AF area position.");
-//         return true;
-//     }
-//     catch (const std::exception& e)
-//     {
-//         spdlog::error("An error occurred while trying to change the AF area position of the camera {}: {}", cameraNumber, e.what());
-//         return false;
-//     }
-// }
-
 bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 {
     try
@@ -755,6 +712,100 @@ bool CrSDKInterface::loadZoomAndFocusPosition(int cameraNumber)
     catch (const std::exception &e)
     {
         spdlog::error("An error occurred while trying to to execute preset focus for camera {}: {}", cameraNumber, e.what());
+        return false;
+    }
+}
+
+cli::text CrSDKInterface::getFnumber(int cameraNumber) 
+{
+    try 
+    {
+        // Check manual mode early for clarity
+        if (cameraModes[cameraNumber] != "m") 
+        {
+            spdlog::error("Camera {} not in manual mode. Cannot get F-number.", cameraNumber);
+            return "";
+        }
+
+        spdlog::info("Getting F-number of camera {}...", cameraNumber);
+
+        // Get both F-number and its string representation concurrently
+        auto fnumberFuture = std::async(std::launch::async, [this, cameraNumber] 
+        {
+            return std::make_pair(
+                cameraList[cameraNumber]->get_manual_aperture(),
+                cameraList[cameraNumber]->get_manual_aperture_str()
+            );
+        });
+
+        auto [getFnumberStatus, fnumberStr] = fnumberFuture.get();
+
+        if (getFnumberStatus && !fnumberStr.empty()) 
+        {
+            spdlog::info("Successfully get F-number for camera {}.", cameraNumber);
+            return fnumberStr;
+        } 
+        else 
+        {
+            spdlog::error("Failed to get F-number for camera {}.", cameraNumber);
+            return "";
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::error("Error getting F-number for camera {}: {}", cameraNumber, e.what());
+        return "";
+    }
+}
+
+bool CrSDKInterface::setFnumber(int cameraNumber, int FnumberValue) 
+{
+    try 
+    {
+        // Input validation: Combined conditions and clearer error message
+        if (cameraModes[cameraNumber] != "m" || FnumberValue < 0 || FnumberValue > 21) 
+        {
+            spdlog::error("Cannot set F-number for camera {}: Invalid mode or value ({})", cameraNumber, FnumberValue);
+            return false;
+        }
+
+        // Using auto for readability and type safety
+        auto& camera = cameraList.at(cameraNumber); // Throw if cameraNumber is invalid
+        spdlog::info("Getting F-number of camera {}...", cameraNumber);
+
+        // Getting the F-number: Simplified, no need for async here
+        if (!camera->get_manual_aperture()) 
+        {
+            spdlog::error("Failed to get the camera {} F-number.", cameraNumber);
+            return false;
+        }
+
+        spdlog::info("Setting F-number of camera {}...", cameraNumber);
+
+        // Setting the F-number: Removed unnecessary async and variable
+        bool setSuccess = camera->set_manual_aperture(FnumberValue);
+
+        // Logging and returning result: Simplified ternary
+        if (setSuccess) 
+        {
+            spdlog::info("Successfully set the camera {} F-number.", cameraNumber);
+        } 
+        else 
+        {
+            spdlog::error("Failed to set the camera {} F-number.", cameraNumber);
+        }
+
+        return setSuccess; // Return the result directly
+
+    } 
+    catch (const std::out_of_range& e) 
+    { 
+        // Handle the specific error of accessing a camera that doesn't exist
+        spdlog::error("Camera {} does not exist.", cameraNumber);
+        return false;
+    } 
+    catch (const std::exception& e) 
+    {
+        spdlog::error("Error setting F-number for camera {}: {}", cameraNumber, e.what());
         return false;
     }
 }
