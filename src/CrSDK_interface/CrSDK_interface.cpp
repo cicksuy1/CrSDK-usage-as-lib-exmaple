@@ -270,6 +270,16 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         // Checking whether the change of the camera's mode was successful.
         if (cameraModes[cameraNumber] == "p")
         {
+            // Load Zoom and Focus Position Enable Preset.
+            bool loadZoomAndFocusPositionSuccess = loadZoomAndFocusPosition(cameraNumber);
+            if (loadZoomAndFocusPositionSuccess)
+            {
+                spdlog::info("Load Zoom and Focus Position Enable Preset was successful");
+            }
+            else
+            {
+                spdlog::error("Failed to load Zoom and Focus Position Enable Preset");
+            }
             return true;
         }
         else
