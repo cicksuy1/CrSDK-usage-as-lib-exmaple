@@ -5,12 +5,14 @@
 
 The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface for controlling a camera using the SUNY Remote SDK (CrSDK). Clients can send GET requests to the server to trigger various camera operations, including:
 
-- Switching between automatic and manual camera modes
-- Adjusting shutter speed
-- Modifying ISO value
-- Changing autofocus area position
-- Downloading camera settings to a PC
-- Uploading camera settings from a PC
+- Switching between automatic and manual camera modes.
+- Adjusting shutter speed.
+- Modifying ISO value.
+- Changing autofocus area position.
+- Downloading camera settings to a PC.
+- Uploading camera settings from a PC.
+- Load zoom and focus position.
+- Set the F-number index.
 
 **Features**
 
@@ -69,17 +71,19 @@ The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface fo
 
 Once the server is running, you can send GET requests to the following endpoints:
 
-| Endpoint                                    | Description                                                                      |
-|---------------------------------------------|-----------------------------------------------------------------------------------|
-| `/`                                         | HTTPS handler for getting an indication of the server
-| `/switch_to_p_mode<camera_id>`              | HTTPS handler for Receives a request to switch the camera to P mode.
-| `/switch_to_m_mode<camera_id>`              | HTTPS handler for Receives a request to switch the camera to M mode
-| `/change_brightness<camera_id><value>`      | HTTPS handler for Receives a request to change brightness
-| `/change_af_area_position<camera_id><x><y>` | HTTPS handler for Receives a request to change AF area position.
-| `/get_camera_mode<camera_id>`               | HTTPS handler for Receives a request to get camera mode.
-| `/download_camera_setting<camera_id>`       | HTTPS handler for download the camera setting file to PC.
-| `/upload_camera_setting<camera_id>`         | HTTPS handler for Receives a request to upload the camera setting file to Camera.
-|`/exit`                                      |  HTTPS handler for Receives a request to exit the program.
+| Endpoint                                            | Description                                                                       |
+|---------------------------------------------        |-----------------------------------------------------------------------------------|
+| `/`                                                 | HTTPS handler for getting an indication of the server.
+| `/switch_to_p_mode<camera_id>`                      | HTTPS handler for Receives a request to switch the camera to P mode.
+| `/switch_to_m_mode<camera_id>`                      | HTTPS handler for Receives a request to switch the camera to M mode.
+| `/change_brightness<camera_id><brightness_value>`   | HTTPS handler for Receives a request to change brightness.
+| `/change_af_area_position<camera_id><x><y>`         | HTTPS handler for Receives a request to change AF area position.
+| `/get_camera_mode<camera_id>`                       | HTTPS handler for Receives a request to get camera mode.
+| `/download_camera_setting<camera_id>`               | HTTPS handler for Receives a request to download the camera setting file to PC.
+| `/upload_camera_setting<camera_id>`                 | HTTPS handler for Receives a request to upload the camera setting file to Camera.
+| `/get_f_number<camera_id>`                          | HTTPS handler for Receives a request to get F-number index.
+| `/set_f_number<camera_id><f_number_value>`          | HTTPS handler for Receives a request to set F-number index.
+| `/exit`                                             | HTTPS handler for Receives a request to exit the program.
 
 
 **Note:** Refer to the CrSDK documentation for specific details and limitations regarding camera control functions.
