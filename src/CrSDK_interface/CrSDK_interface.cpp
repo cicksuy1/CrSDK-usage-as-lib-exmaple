@@ -113,6 +113,8 @@ bool CrSDKInterface::connectToCameras()
                     return camera->connect(SDK::CrSdkControlMode_Remote, SDK::CrReconnecting_ON); 
                 });
 
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
                 // Wait for both tasks to finish
                 bool connectStatus = connectTask.get();
                 connectStatus ? spdlog::info("The connection to camera number {} was successful", i) : spdlog::error("The connection to camera number {} failed", i);
@@ -123,8 +125,6 @@ bool CrSDKInterface::connectToCameras()
                 spdlog::warn("Camera {} is already connected. Please disconnect first.", i + 1);
             }
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         bool allConnected = true;
 
@@ -153,7 +153,16 @@ bool CrSDKInterface::connectToCameras()
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
                 // Load Zoom and Focus Position Enable Preset.
-                bool loadZoomAndFocusPositionSuccess = loadZoomAndFocusPosition(camera_id);
+                std::promise<bool> loadZoomAndFocusPositionPromise;
+                std::future<bool> loadZoomAndFocusPositionFuture = loadZoomAndFocusPositionPromise.get_future();
+
+                std::async([this, camera_id, &loadZoomAndFocusPositionPromise]()
+                {
+                    loadZoomAndFocusPositionPromise.set_value(this->loadZoomAndFocusPosition(camera_id)); // Set the value for the promise
+                });
+
+                // Wait for the asynchronous task to complete
+                bool loadZoomAndFocusPositionSuccess = loadZoomAndFocusPositionFuture.get(); 
                 if (loadZoomAndFocusPositionSuccess)
                 {
                     spdlog::info("Load Zoom and Focus Position Enable Preset was successful");
@@ -162,6 +171,69 @@ bool CrSDKInterface::connectToCameras()
                 {
                     spdlog::error("Failed to load Zoom and Focus Position Enable Preset");
                 }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                std::promise<bool> switchToMModePromise;
+                std::future<bool> switchToMModeFuture = switchToMModePromise.get_future();
+
+                std::async([this, camera_id, &switchToMModePromise]()
+                {
+                    switchToMModePromise.set_value(this->switchToMMode(camera_id)); // Set the value for the promise
+                });
+
+                // Wait for the asynchronous task to complete
+                bool switchToMModeStatus = switchToMModeFuture.get(); 
+
+                if (switchToMModeStatus)
+                {
+                    spdlog::info("Switch to M mode was successful");
+
+                    int fnumberValue = 0; // F1.4
+                    std::promise<bool> setFnumberPromise;
+                    std::future<bool> setFnumberFuture = setFnumberPromise.get_future();
+
+                    std::async([this, camera_id, fnumberValue, &setFnumberPromise]()
+                    {
+                        setFnumberPromise.set_value(this->setFnumber(camera_id, fnumberValue)); // Set the value for the promise
+                    });
+
+                    // Wait for the asynchronous task to complete
+                    bool setFnumberStatus = setFnumberFuture.get();
+
+                    if (setFnumberStatus)
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                        std::promise<bool> switchToPModePromise;
+                        std::future<bool> switchToPModeFuture = switchToPModePromise.get_future();
+
+                        std::async([this, camera_id, &switchToPModePromise]()
+                        {
+                            switchToPModePromise.set_value(this->switchToPMode(camera_id)); // Set the value for the promise
+                        });
+
+                        // Wait for the asynchronous task to complete
+                        bool switchToPModeStatus = switchToPModeFuture.get();
+                        if (switchToMModeStatus)
+                        {
+                            spdlog::info("Switch to P mode was successful");
+                        }
+                        else
+                        {
+                            spdlog::error("Failed to switch to P mode");
+                        }
+                    } 
+                    else 
+                    {
+                        spdlog::error("Failed to set the camera {} F-number.", camera_id);
+                    }
+                }
+                else
+                {
+                    spdlog::error("Failed to switch to M mode");
+                }
+
                 camera_id++;
             }
         }
@@ -703,8 +775,17 @@ bool CrSDKInterface::loadZoomAndFocusPosition(int cameraNumber)
     try
     {
         // Execute preset focus.
-        bool executePresetFocusSuccess = cameraList[cameraNumber]->execute_preset_focus_bool();
+        std::promise<bool> executePresetFocusPromise;
+        std::future<bool> executePresetFocusFuture = executePresetFocusPromise.get_future();
 
+        std::async([this, cameraNumber, &executePresetFocusPromise]()
+        {
+            executePresetFocusPromise.set_value(this->cameraList[cameraNumber]->execute_preset_focus_bool()); // Set the value for the promise
+        });
+
+        // Wait for the asynchronous task to complete
+        bool executePresetFocusSuccess = executePresetFocusFuture.get(); 
+        
         // Introduce a small delay to allow the camera to process the set focus position setting
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
        
@@ -730,13 +811,6 @@ cli::text CrSDKInterface::getFnumber(int cameraNumber)
 {
     try 
     {
-        // Check manual mode early for clarity
-        if (cameraModes[cameraNumber] != "m") 
-        {
-            spdlog::error("Camera {} not in manual mode. Cannot get F-number.", cameraNumber);
-            return "";
-        }
-
         spdlog::info("Getting F-number of camera {}...", cameraNumber);
 
         // Get both F-number and its string representation concurrently
@@ -761,7 +835,9 @@ cli::text CrSDKInterface::getFnumber(int cameraNumber)
             return "";
         }
 
-    } catch (const std::exception& e) {
+    } 
+    catch (const std::exception& e) 
+    {
         spdlog::error("Error getting F-number for camera {}: {}", cameraNumber, e.what());
         return "";
     }
@@ -783,7 +859,18 @@ bool CrSDKInterface::setFnumber(int cameraNumber, int FnumberValue)
         spdlog::info("Getting F-number of camera {}...", cameraNumber);
 
         // Getting the F-number: Simplified, no need for async here
-        if (!camera->get_manual_aperture()) 
+        std::promise<bool> getAperturePromise;
+        std::future<bool> getApertureFuture = getAperturePromise.get_future();
+
+        std::async([this, cameraNumber, &getAperturePromise]()
+        {
+            getAperturePromise.set_value(this->cameraList[cameraNumber]->get_manual_aperture()); // Set the value for the promise
+        });
+
+        // Wait for the asynchronous task to complete
+        bool getApertureSuccess = getApertureFuture.get(); 
+        
+        if (!getApertureSuccess) 
         {
             spdlog::error("Failed to get the camera {} F-number.", cameraNumber);
             return false;
@@ -792,10 +879,19 @@ bool CrSDKInterface::setFnumber(int cameraNumber, int FnumberValue)
         spdlog::info("Setting F-number of camera {}...", cameraNumber);
 
         // Setting the F-number: Removed unnecessary async and variable
-        bool setSuccess = camera->set_manual_aperture(FnumberValue);
+        std::promise<bool> setAperturePromise;
+        std::future<bool> setApertureFuture = setAperturePromise.get_future();
+
+        std::async([this, cameraNumber, FnumberValue, &setAperturePromise]()
+        {
+            setAperturePromise.set_value(this->cameraList[cameraNumber]->set_manual_aperture(FnumberValue)); // Set the value for the promise
+        });
+
+        // Wait for the asynchronous task to complete
+        bool setApertureSuccess = setApertureFuture.get(); 
 
         // Logging and returning result: Simplified ternary
-        if (setSuccess) 
+        if (setApertureSuccess) 
         {
             spdlog::info("Successfully set the camera {} F-number.", cameraNumber);
         } 
@@ -804,7 +900,7 @@ bool CrSDKInterface::setFnumber(int cameraNumber, int FnumberValue)
             spdlog::error("Failed to set the camera {} F-number.", cameraNumber);
         }
 
-        return setSuccess; // Return the result directly
+        return setApertureSuccess; // Return the result directly
 
     } 
     catch (const std::out_of_range& e) 

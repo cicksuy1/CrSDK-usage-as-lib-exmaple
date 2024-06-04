@@ -1318,7 +1318,7 @@ void CameraDevice::set_iso()
 {
     if (1 != m_prop.iso_sensitivity.writable) {
         // Not a settable property
-        tout << "ISO is not writable\n";
+        spdlog::error("ISO is not writable");
         return;
     }
 
@@ -1364,7 +1364,7 @@ bool CameraDevice::set_manual_iso_bool(int userInput)
 {
     if (1 != m_prop.iso_sensitivity.writable) {
         // Not a settable property
-        tout << "ISO is not writable\n";
+        spdlog::error("ISO is not writable");
         return false;
     }
 
@@ -1545,7 +1545,7 @@ void CameraDevice::set_exposure_program_mode()
 {
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
-        tout << "Exposure Program Mode is not writable\n";
+        spdlog::error("Exposure Program Mode is not writable");
         return;
     }
 
@@ -1597,7 +1597,7 @@ bool CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
 
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
-        tout << "Exposure Program Mode is not writable\n";
+        spdlog::error("Exposure Program Mode is not writable");
         return false;
     }
 
@@ -1621,7 +1621,7 @@ bool CameraDevice::set_exposure_program_P_Auto_mode( cli::text& cameraMode)
 {
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
-        tout << "Exposure Program Mode is not writable\n";
+        spdlog::error("Exposure Program Mode is not writable");
         return false;
     }
 
@@ -1652,7 +1652,7 @@ bool CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
-        tout << "Exposure Program Mode is not writable\n";
+        spdlog::error("Exposure Program Mode is not writable");
         return false;
     }
 
