@@ -537,10 +537,26 @@ void CameraDevice::get_iso()
     tout << "ISO: " << format_iso_sensitivity(m_prop.iso_sensitivity.current) << '\n';
 }
 
+cli::text CameraDevice::get_iso_text()
+{
+    load_properties();
+    cli::text iso = format_iso_sensitivity(m_prop.iso_sensitivity.current);
+    spdlog::info("ISO: {}", iso);
+    return iso;
+}
+
 void CameraDevice::get_shutter_speed()
 {
     load_properties();
     tout << "Shutter Speed: " << format_shutter_speed(m_prop.shutter_speed.current) << '\n';
+}
+
+cli::text CameraDevice::get_shutter_speed_text()
+{
+    load_properties();
+    cli::text shutterSpeed = format_shutter_speed(m_prop.shutter_speed.current);
+    spdlog::info("Shutter Speed: {}", shutterSpeed);
+    return shutterSpeed;
 }
 
 void CameraDevice::get_position_key_setting()
@@ -1601,9 +1617,14 @@ bool CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
         return false;
     }
 
-    auto& values = m_prop.exposure_program_mode.possible;
-
     int selected_index = 5;
+
+    auto& values = m_prop.exposure_program_mode.possible;
+    if(values.size() < 12)
+    {
+        selected_index = 1;
+    }
+
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
@@ -1645,20 +1666,27 @@ bool CameraDevice::set_exposure_program_P_Auto_mode( cli::text& cameraMode)
 
 bool CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
 {
-    if(cameraMode == "m"){
+    if(cameraMode == "m")
+    {
         spdlog::warn("The camera is already in M mode");
         return true;
     }
 
-    if (1 != m_prop.exposure_program_mode.writable) {
+    if (1 != m_prop.exposure_program_mode.writable) 
+    {
         // Not a settable property
         spdlog::error("Exposure Program Mode is not writable");
         return false;
     }
 
+    int selected_index = 8;
+
     auto& values = m_prop.exposure_program_mode.possible;
 
-    int selected_index = 8;
+    if(values.size() < 12)
+    {
+        selected_index = 4;
+    }
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);

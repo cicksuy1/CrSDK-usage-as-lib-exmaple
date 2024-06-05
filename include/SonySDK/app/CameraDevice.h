@@ -83,7 +83,9 @@ public:
 
     void get_aperture();
     void get_iso();
+    cli::text get_iso_text();
     void get_shutter_speed();
+    cli::text get_shutter_speed_text();
     void get_position_key_setting();
     void get_exposure_program_mode();
     void get_exposure_program_mode(cli::text& cameraMode);

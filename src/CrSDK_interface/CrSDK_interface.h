@@ -16,6 +16,8 @@
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
+#include "../Converters/iso_converter/iso_converter.h"
+#include "../Converters/shutter_speed_converter/shutter_speed_converter.h"
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
@@ -204,9 +206,10 @@ public:
 
 // private:
     std::vector<cli::text> cameraModes; // No size argument here
-    // std::vector<cli::text> camerasFnumber; // No size argument here 
     std::vector<CameraDevicePtr> cameraList;
     SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
+    ISOConverter iso_converter;
+    ShutterSpeedConverter shutter_speed_converter;
 
 };
 

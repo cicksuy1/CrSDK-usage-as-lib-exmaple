@@ -382,10 +382,12 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
         {
             spdlog::error("The brightness value entered is incorrect.");
             return false;
-        }
+        } 
 
-        bool setManualShutterSpeedSuccess = false;
-        bool setManualIsoSuccess = false;
+        int isoValue = iso_converter.isoStringToValue(cameraList[cameraNumber]->get_iso_text());
+        int ShutterSpeedValue = shutter_speed_converter.shutterStringToValue(cameraList[cameraNumber]->get_shutter_speed_text());
+
+        bool setManualShutterSpeedSuccess, setManualIsoSuccess = false;
 
         if (userBrightnessInput <= 33)
         {
@@ -452,6 +454,23 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
 
         spdlog::info("change the camera {} AF area position...", cameraNumber);
 
+        // Attempt to set the AF area position
+        std::future<bool> setAFPositionFuture = std::async(std::launch::async, [=]() 
+        {
+            return cameraList[cameraNumber]->set_manual_af_area_position(x_y);
+        });
+
+        // Wait for the asynchronous function to complete and get the result
+        bool setAFPositionStatus = setAFPositionFuture.get();
+
+        if (setAFPositionStatus)
+        {
+            spdlog::info("Successfully set the camera {} AF area position.", cameraNumber);
+            return true;
+        }
+
+        spdlog::error("Failed to set the camera {} AF area position. Trying one more time...", cameraNumber);
+
         // Create a future to run the asynchronous function to change to P_Auto mode
         std::future<bool> changeToPModeFuture = std::async(std::launch::async, [=]() 
         {
@@ -475,15 +494,15 @@ bool CrSDKInterface::changeAFAreaPosition(int cameraNumber, int x, int y)
         bool setAFAreeaPositionSuccess = true;
 
         // Attempt to set the AF area position
-        std::future<bool> setAFPositionFuture = std::async(std::launch::async, [=]() 
+        std::future<bool> setAFPositionFutureSecondTime = std::async(std::launch::async, [=]() 
         {
             return cameraList[cameraNumber]->set_manual_af_area_position(x_y);
         });
 
         // Wait for the asynchronous function to complete and get the result
-        bool setAFPositionStatus = setAFPositionFuture.get();
+        bool setAFPositionStatusSecondTime = setAFPositionFutureSecondTime.get();
 
-        if (!setAFPositionStatus)
+        if (!setAFPositionStatusSecondTime)
         {
             spdlog::error("Failed to set the camera {} AF area position.", cameraNumber);
             setAFAreeaPositionSuccess = false;
