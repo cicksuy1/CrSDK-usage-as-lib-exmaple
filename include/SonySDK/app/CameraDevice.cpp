@@ -541,7 +541,7 @@ cli::text CameraDevice::get_iso_text()
 {
     load_properties();
     cli::text iso = format_iso_sensitivity(m_prop.iso_sensitivity.current);
-    spdlog::info("ISO: {}", iso);
+    // spdlog::info("{}", iso);
     return iso;
 }
 
@@ -554,8 +554,9 @@ void CameraDevice::get_shutter_speed()
 cli::text CameraDevice::get_shutter_speed_text()
 {
     load_properties();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     cli::text shutterSpeed = format_shutter_speed(m_prop.shutter_speed.current);
-    spdlog::info("Shutter Speed: {}", shutterSpeed);
+    // spdlog::info("Shutter Speed: {}", shutterSpeed);
     return shutterSpeed;
 }
 
@@ -1378,7 +1379,8 @@ void CameraDevice::set_iso()
 
 bool CameraDevice::set_manual_iso_bool(int userInput)
 {
-    if (1 != m_prop.iso_sensitivity.writable) {
+    if (1 != m_prop.iso_sensitivity.writable) 
+    {
         // Not a settable property
         spdlog::error("ISO is not writable");
         return false;
@@ -1386,11 +1388,9 @@ bool CameraDevice::set_manual_iso_bool(int userInput)
 
     auto& values = m_prop.iso_sensitivity.possible;
 
-    int selected_index = userInput - 10;
-
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_IsoSensitivity);
-    prop.SetCurrentValue(values[selected_index]);
+    prop.SetCurrentValue(values[userInput]);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
@@ -1479,11 +1479,9 @@ void CameraDevice::set_manual_shutter_speed(int userInput)
 
     auto& values = m_prop.shutter_speed.possible;
    
-    int selected_index = 33 - userInput;
-
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
-    prop.SetCurrentValue(values[selected_index]);
+    prop.SetCurrentValue(values[userInput]);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
@@ -1498,12 +1496,10 @@ bool CameraDevice::set_manual_shutter_speed_bool(int userInput)
     }
 
     auto& values = m_prop.shutter_speed.possible;
-   
-    int selected_index = 33 - userInput;
 
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
-    prop.SetCurrentValue(values[selected_index]);
+    prop.SetCurrentValue(values[userInput]);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
@@ -3482,11 +3478,9 @@ void CameraDevice::set_manual_shutter_speed_value(int userInput)
 
     auto& values = m_prop.shutter_speed_value.possible;
     
-    int selected_index = 33 - userInput;
-
     SDK::CrDeviceProperty prop;
     prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeedValue);
-    prop.SetCurrentValue(values[selected_index]);
+    prop.SetCurrentValue(values[userInput]);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt64Array);
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }

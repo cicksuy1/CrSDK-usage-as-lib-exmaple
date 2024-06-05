@@ -193,7 +193,7 @@ bool GpioPin::restat()
 
         GPIO::output(pin, GPIO::LOW);
 
-        sleep(10);
+        sleep(5);
 
         GPIO::output(pin, GPIO::HIGH);
 

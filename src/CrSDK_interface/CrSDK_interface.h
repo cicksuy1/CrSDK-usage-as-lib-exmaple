@@ -22,6 +22,10 @@
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
 #define MAX_CAMERAS 2
+#define AUTO_ISO_INDEX 0
+#define DEFAULT_BRIGHTNESS_VALUE 33 
+#define CONVERT_BRIGHTNESS_TO_ISO(brightness) ((brightness) - 10)
+#define CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(brightness) ((brightness) >= 33 ? 0 : (33 - (brightness)))
 
 namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;
@@ -208,6 +212,7 @@ public:
     std::vector<cli::text> cameraModes; // No size argument here
     std::vector<CameraDevicePtr> cameraList;
     SDK::ICrEnumCameraObjectInfo *camera_list = nullptr;
+    int BrightnessValue = DEFAULT_BRIGHTNESS_VALUE;
     ISOConverter iso_converter;
     ShutterSpeedConverter shutter_speed_converter;
 

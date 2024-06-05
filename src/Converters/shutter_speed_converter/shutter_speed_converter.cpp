@@ -1,8 +1,10 @@
 #include "shutter_speed_converter.h"
 
 // Constructor to initialize the conversion table
-ShutterSpeedConverter::ShutterSpeedConverter() {
-    shutter_to_value = {
+ShutterSpeedConverter::ShutterSpeedConverter() 
+{
+    shutter_to_value = 
+    {
         {"1/4", 0},
         {"1/5", 1},
         {"1/6", 2},
@@ -39,29 +41,43 @@ ShutterSpeedConverter::ShutterSpeedConverter() {
     };
 
     // Invert the map to create value to shutter mapping
-    for (const auto& pair : shutter_to_value) {
+    for (const auto& pair : shutter_to_value) 
+    {
         value_to_shutter[pair.second] = pair.first;
     }
 }
 
 // Function to convert shutter speed string to value
 int ShutterSpeedConverter::shutterStringToValue(const std::string& shutter) {
-    if (shutter_to_value.find(shutter) != shutter_to_value.end()) {
-        return shutter_to_value[shutter];
+    std::string cleanedShutter;
+    for (char c : shutter) {
+        if (isdigit(c) || c == '.') {
+            cleanedShutter += c;
+        }
+    }
+
+    // Add '/' back to the string
+    cleanedShutter.insert(cleanedShutter.begin() + 1, '/');
+    if (shutter_to_value.find(cleanedShutter) != shutter_to_value.end()) {
+        return shutter_to_value[cleanedShutter];
     } else {
         // Handle invalid shutter speed string
-        std::cerr << "Invalid shutter speed string: " << shutter << std::endl;
+        spdlog::error("Invalid shutter speed string: {}", shutter);
         return -1; // or throw an exception
     }
 }
 
 // Function to convert shutter speed value to string
-std::string ShutterSpeedConverter::shutterValueToString(int value) {
-    if (value_to_shutter.find(value) != value_to_shutter.end()) {
+std::string ShutterSpeedConverter::shutterValueToString(int value) 
+{
+    if (value_to_shutter.find(value) != value_to_shutter.end()) 
+    {
         return value_to_shutter[value];
-    } else {
+    } 
+    else 
+    {
         // Handle invalid shutter speed value
-        std::cerr << "Invalid shutter speed value: " << value << std::endl;
+        spdlog::error("Invalid shutter speed value: {}", value);
         return ""; // or throw an exception
     }
 }

@@ -120,6 +120,21 @@ void Server::setupRoutes()
         handleSetFnumber(req, res); 
     });
 
+    server.Get("/start_cameras", [this](const httplib::Request &req, httplib::Response &res)
+    { 
+        startCameras(req, res); 
+    });
+
+    server.Get("/stop_cameras", [this](const httplib::Request &req, httplib::Response &res)
+    { 
+        stopCameras(req, res); 
+    });   
+
+    server.Get("/restat_cameras", [this](const httplib::Request &req, httplib::Response &res)
+    { 
+        restatCameras(req, res); 
+    }); 
+
     server.Get("/exit", [this](const httplib::Request &req, httplib::Response &res){ 
         handleExit(req, res); 
     });
@@ -319,20 +334,26 @@ void Server::handleSwitchToPMode(const httplib::Request &req, httplib::Response 
 
         // switch to P mode logic...
         bool success = false;
-        if(crsdkInterface_){
+        if(crsdkInterface_)
+        {
             spdlog::info("switch to P mode...");
             success = crsdkInterface_->switchToPMode(camera_id);
         }
-        else{
+        else
+        {
             spdlog::error("ERROR: crsdkInterface_ is nullptr");
         }
 
-        if (success) {
+        if (success) 
+        {
             // Success message
             spdlog::info("Changing the camera {} mode to P mode was successful", camera_id);
             resolution_json["message"] = "Successfully switched to P mode";
+            resolution_json["mode"] = std::string(1, 'a' - 32);
             res.status = 200; // OK
-        } else {
+        } 
+        else 
+        {
             // Error message
             spdlog::error("Failed to change camera mode to P mode");
             resolution_json["error"] = "Failed to switch to P mode";
@@ -391,22 +412,47 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
 
         // switch to M mode logic...
         bool success = false;
-        if(crsdkInterface_){
+        if(crsdkInterface_)
+        {
             spdlog::info("switch to M mode...");
             success = crsdkInterface_->switchToMMode(camera_id);
         }
-        else{
+        else
+        {
             spdlog::error("ERROR: crsdkInterface_ is nullptr");
         }
 
-        if (success) {
+        if (success) 
+        {
             // Success message
             spdlog::info("Changing the camera {} mode to M mode was successful", camera_id);
             resolution_json["message"] = "Successfully switched to M mode";
+            resolution_json["mode"] = std::string(1, 'm' - 32);
             res.status = 200; // OK
-        } else {
-            // Error message
+        } 
+        else 
+        {
+           
             spdlog::error("Failed to change camera mode to M mode");
+
+            spdlog::info("Returns the camera to P mode...");
+            success = crsdkInterface_->switchToPMode(camera_id);
+            if (success) 
+            {
+                // Success message
+                spdlog::info("Changing the camera {} mode back to P mode was successful", camera_id);
+                resolution_json["message"] = "Successfully switched back to P mode";
+                resolution_json["mode"] = std::string(1, 'a' - 32);
+                res.status = 200; // OK
+            } 
+            else
+            {
+                // Error message
+                resolution_json["error"] = "Failed to switch to M mode";
+                res.status = 500; // Internal Server Error
+            }
+
+            // Error message
             resolution_json["error"] = "Failed to switch to M mode";
             res.status = 500; // Internal Server Error
         }
@@ -993,6 +1039,150 @@ void Server::handleSetFnumber(const httplib::Request &req, httplib::Response &re
     {
         // Handle the exception and generate an error message
         spdlog::error("Set F-number Route Error: {}", e.what());
+    }
+}
+
+void Server::startCameras(const httplib::Request &req, httplib::Response &res)
+{
+    // Create a JSON object
+    json response_json;
+
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        if(gpioPin != nullptr)
+        {
+            bool success = gpioPin->pinOff();
+            if (success)
+            {
+                response_json["message"] = "The cameras started successfully";
+                res.status = 200; // OK 
+            }
+            else
+            {
+                response_json["error"] = "Failed to start cameras";
+                res.status = 500; // Internal Server Error  
+            } 
+        }
+        else
+        {
+            response_json["error"] = "Failed to start cameras, gpio is not active";
+            res.status = 500; // Internal Server Error
+        }
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Error occurred in the start cameras route: {}", e.what());
+
+        // Error message
+        response_json["error"] = "Failed to start the cameras";
+        res.status = 500; // Internal Server Error
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+}
+
+void Server::stopCameras(const httplib::Request &req, httplib::Response &res)
+{
+    // Create a JSON object
+    json response_json;
+
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        // Create a JSON object
+        json response_json;
+
+        if(gpioPin != nullptr)
+        {
+            bool success = gpioPin->pinOn();
+            if (success)
+            {
+                response_json["message"] = "Stopping the cameras was successful.";
+                res.status = 200; // OK 
+            }
+            else
+            {
+                response_json["error"] = "Stopping the cameras failed.";
+                res.status = 500; // Internal Server Error
+            }    
+        }
+        else
+        {
+            response_json["error"] = "Stopping the cameras failed, gpio is not active";
+            res.status = 500; // Internal Server Error
+        }
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Error occurred in the stop cameras route: {}", e.what());
+
+        // Error message
+        response_json["error"] = "Failed to stop the cameras";
+        res.status = 500; // Internal Server Error
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+}
+
+void Server::restatCameras(const httplib::Request &req, httplib::Response &res)
+{
+    // Create a JSON object
+    json response_json;
+
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        if(gpioPin != nullptr)
+        {
+            bool success = gpioPin->restat();
+            if (success)
+            {
+                response_json["message"] = "Restarting the cameras was successful.";
+                res.status = 200; // OK 
+            }
+            else
+            {
+                response_json["error"] = "Restarting the cameras failed.";
+                res.status = 500; // Internal Server Error
+            }    
+        }
+        else
+        {
+            response_json["error"] = "Restarting the cameras failed, gpio is not active.";
+            res.status = 500; // Internal Server Error
+        }
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Error occurred in the restat cameras route: {}", e.what());
+
+        // Error message
+        response_json["error"] = "Failed to restat the cameras";
+        res.status = 500; // Internal Server Error
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
     }
 }
 

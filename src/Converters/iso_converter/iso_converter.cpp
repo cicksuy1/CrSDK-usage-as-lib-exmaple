@@ -1,7 +1,8 @@
 #include "iso_converter.h"
 
 // Constructor to initialize the conversion table
-ISOConverter::ISOConverter() {
+ISOConverter::ISOConverter() 
+{
     iso_to_value = {
         {"ISO AUTO", 0},
         {"ISO 80", 1},
@@ -45,29 +46,38 @@ ISOConverter::ISOConverter() {
     };
 
     // Invert the map to create value to ISO mapping
-    for (const auto& pair : iso_to_value) {
+    for (const auto& pair : iso_to_value) 
+    {
         value_to_iso[pair.second] = pair.first;
     }
 }
 
 // Function to convert ISO string to value
-int ISOConverter::isoStringToValue(const std::string& iso) {
-    if (iso_to_value.find(iso) != iso_to_value.end()) {
+int ISOConverter::isoStringToValue(const std::string& iso) 
+{
+    if (iso_to_value.find(iso) != iso_to_value.end()) 
+    {
         return iso_to_value[iso];
-    } else {
+    } 
+    else 
+    {
         // Handle invalid ISO string
-        std::cerr << "Invalid ISO string: " << iso << std::endl;
+        spdlog::error("Invalid ISO string: {}", iso);
         return -1; // or throw an exception
     }
 }
 
 // Function to convert ISO value to string
-std::string ISOConverter::isoValueToString(int value) {
-    if (value_to_iso.find(value) != value_to_iso.end()) {
+std::string ISOConverter::isoValueToString(int value) 
+{
+    if (value_to_iso.find(value) != value_to_iso.end()) 
+    {
         return value_to_iso[value];
-    } else {
+    } 
+    else 
+    {
         // Handle invalid ISO value
-        std::cerr << "Invalid ISO value: " << value << std::endl;
+        spdlog::error("Invalid ISO value: {}", value);
         return ""; // or throw an exception
     }
 }

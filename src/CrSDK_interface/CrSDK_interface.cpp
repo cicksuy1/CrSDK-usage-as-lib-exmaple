@@ -263,18 +263,8 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_M_mode(cameraModes[cameraNumber]);
 
-        // Set the ISO to automatic
-        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(10);
-
-        // Checking whether changing the ISO to automatic succeeded or failed
-        if(!setManualIsoSuccess)
-        {
-            spdlog::error("Setting the ISO for camera {} to automatic failed", cameraNumber);
-            return false;
-        }
-
         // Introduce a small delay to allow the camera to process the mode change
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         // Create a promise and future pair
         std::promise<void> prom;
@@ -292,6 +282,29 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         // Checking whether the change of the camera's mode was successful.
         if (cameraModes[cameraNumber] == "m")
         {
+            spdlog::info("Sets the brightness to a value of {}...", this->BrightnessValue);
+
+            // Set the ISO value to 12,800 by default or to the user's previous choice if he has already chosen before        
+            bool setIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(this->BrightnessValue));
+
+            // Set the Shutter Speed value to 1/4 by default or to the user's previous choice if he has already chosen before        
+            bool setShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(this->BrightnessValue));
+
+            // Checking whether changing the ISO succeeded or failed
+            if(!setIsoSuccess)
+            {
+                spdlog::error("Setting the ISO for camera {} failed", cameraNumber);
+                return false;
+            }
+
+            // Checking whether changing the Shutter Speed succeeded or failed
+            if(!setShutterSpeedSuccess)
+            {
+                spdlog::error("Setting the Shutter Speed for camera {} failed", cameraNumber);
+                return false;
+            }
+
+            spdlog::info("Setting the brightness value to {} was successful", this->BrightnessValue);
             return true;
         }
         else
@@ -313,16 +326,6 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         // change of the camera's mode.
         cameraList[cameraNumber]->set_exposure_program_P_mode(cameraModes[cameraNumber]);
 
-        // Set the ISO value to 12800
-        bool setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(33);
-
-        // Checking whether changing the ISO to automatic succeeded or failed
-        if(!setManualIsoSuccess)
-        {
-            spdlog::error("Setting the ISO for camera {} to automatic failed", cameraNumber);
-            return false;
-        }
-
         // Introduce a small delay to allow the camera to process the mode change
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -342,6 +345,23 @@ bool CrSDKInterface::switchToPMode(int cameraNumber)
         // Checking whether the change of the camera's mode was successful.
         if (cameraModes[cameraNumber] == "p")
         {
+            // get the ISO value.
+            int isoValue = iso_converter.isoStringToValue(cameraList[cameraNumber]->get_iso_text());
+
+            // Checking whether the ISO value is automatic
+            if(!CONVERT_BRIGHTNESS_TO_ISO(isoValue) == AUTO_ISO_INDEX)
+            {
+                // Set the ISO value to Auto.
+                bool setIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(AUTO_ISO_INDEX); 
+
+                // Checking whether changing the ISO to automatic succeeded or failed
+                if(!setIsoSuccess)
+                {
+                    spdlog::error("Setting the ISO for camera {} to automatic failed", cameraNumber);
+                    return false;
+                }
+            }
+
             // Load Zoom and Focus Position Enable Preset.
             bool loadZoomAndFocusPositionSuccess = loadZoomAndFocusPosition(cameraNumber);
             if (loadZoomAndFocusPositionSuccess)
@@ -386,20 +406,41 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
 
         int isoValue = iso_converter.isoStringToValue(cameraList[cameraNumber]->get_iso_text());
         int ShutterSpeedValue = shutter_speed_converter.shutterStringToValue(cameraList[cameraNumber]->get_shutter_speed_text());
+        spdlog::info("ISO value: {}, Shutter Speed value: {}.", isoValue, ShutterSpeedValue);
 
-        bool setManualShutterSpeedSuccess, setManualIsoSuccess = false;
+        bool setManualShutterSpeedSuccess = true; 
+        bool setManualIsoSuccess = true;
 
         if (userBrightnessInput <= 33)
         {
             // Set shutter speed (0-33) and ISO value to 12800
-            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(userBrightnessInput);
-            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(33); 
+            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(userBrightnessInput));
+
+            // Checking whether the ISO value that the user selected is different from the current value
+            if(isoValue != CONVERT_BRIGHTNESS_TO_ISO(DEFAULT_BRIGHTNESS_VALUE))
+            {
+                spdlog::info("Change the value of the ISO...");
+                setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(DEFAULT_BRIGHTNESS_VALUE)); 
+            }
         }
         else
         {
             // Set fixed shutter speed (33) and ISO (23-38)
-            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(33);
-            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(userBrightnessInput);
+            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(userBrightnessInput));
+
+            // Checking whether the shutter speed value that the user selected is different from the current value
+            if(ShutterSpeedValue != CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(DEFAULT_BRIGHTNESS_VALUE))
+            {
+                spdlog::info("Change the value of the shutter speed...");
+                std::future<bool> setManualShutterSpeedSuccessFuture = std::async(std::launch::async, [=]() 
+                {
+                    return cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(DEFAULT_BRIGHTNESS_VALUE));
+                });
+
+                // Wait for the asynchronous function to complete and get the result
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                setManualShutterSpeedSuccess = setManualShutterSpeedSuccessFuture.get();
+            }
         }
 
         // Check if setting ISO was successful
@@ -416,6 +457,7 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
             return false;
         }
 
+        this->BrightnessValue = userBrightnessInput;
         spdlog::info("Setting the ISO and shutter speed was successful.");
         return true;
     }

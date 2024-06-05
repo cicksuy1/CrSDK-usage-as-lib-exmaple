@@ -83,6 +83,9 @@ Once the server is running, you can send GET requests to the following endpoints
 | `/upload_camera_setting<camera_id>`                 | HTTPS handler for Receives a request to upload the camera setting file to Camera.
 | `/get_f_number<camera_id>`                          | HTTPS handler for Receives a request to get F-number index.
 | `/set_f_number<camera_id><f_number_value>`          | HTTPS handler for Receives a request to set F-number index.
+| `/start_cameras`                                    | HTTPS handler for Receives a request to start cameras.
+| `/stop_cameras`                                     | HTTPS handler for Receives a request to stop cameras.
+| `/restat_cameras`                                   | HTTPS handler for Receives a request to restat cameras.
 | `/exit`                                             | HTTPS handler for Receives a request to exit the program.
 
 

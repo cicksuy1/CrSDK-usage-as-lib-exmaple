@@ -113,7 +113,6 @@ private:
     int port_;                                                  ///< Port on which the server will listen.
     CrSDKInterface *crsdkInterface_;                            ///< Add an instance of CrSDKInterface
     std::thread monitoringThread;                               ///< Thread object for monitoring
-    // std::atomic<bool> stopRequested{false};                     ///< A flag for stopping the server thread
     std::atomic<bool> &stopRequested;                           ///< A flag for stopping the server thread
     GpioPin *gpioPin;                                           ///< Declaration of GpioPin instance
 
@@ -191,6 +190,27 @@ private:
      * @param res HTTP response to be sent.
      */
     void handleSetFnumber(const httplib::Request &req, httplib::Response &res);
+
+    /**
+     * @brief HTTP handler for starting the cameras.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void startCameras(const httplib::Request &req, httplib::Response &res);
+
+    /**
+     * @brief HTTP handler for stopping the cameras.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void stopCameras(const httplib::Request &req, httplib::Response &res);
+
+     /**
+     * @brief HTTP handler for restat the cameras.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void restatCameras(const httplib::Request &req, httplib::Response &res);
 
      /**
      * @brief HTTP handler for Receives a request to exit the program.

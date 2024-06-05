@@ -4,6 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <sstream>
 
 /**
  * @brief The ShutterSpeedConverter class converts between shutter speed values and strings.
