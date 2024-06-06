@@ -24,8 +24,9 @@
 #define MAX_CAMERAS 2
 #define AUTO_ISO_INDEX 0
 #define DEFAULT_BRIGHTNESS_VALUE 33 
-#define CONVERT_BRIGHTNESS_TO_ISO(brightness) ((brightness) - 10)
+#define CONVERT_BRIGHTNESS_TO_ISO(brightness) ((brightness) <= 33 ? 23 : ((brightness) - 10))
 #define CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(brightness) ((brightness) >= 33 ? 0 : (33 - (brightness)))
+
 
 namespace fs = std::experimental::filesystem;
 namespace SDK = SCRSDK;

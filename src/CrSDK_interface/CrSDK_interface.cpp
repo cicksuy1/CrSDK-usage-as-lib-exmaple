@@ -283,11 +283,31 @@ bool CrSDKInterface::switchToMMode(int cameraNumber)
         {
             spdlog::info("Sets the brightness to a value of {}...", this->BrightnessValue);
 
-            // Set the ISO value to 12,800 by default or to the user's previous choice if he has already chosen before        
-            bool setIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(this->BrightnessValue));
+            bool setIsoSuccess = false;
+
+            bool setShutterSpeedSuccess = false;
 
             // Set the Shutter Speed value to 1/4 by default or to the user's previous choice if he has already chosen before        
-            bool setShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(this->BrightnessValue));
+            spdlog::info("Change the value of the shutter speed...");
+            std::future<bool> setManualShutterSpeedSuccessFuture = std::async(std::launch::async, [=]() 
+            {
+                return cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(this->BrightnessValue));
+            });
+
+            // Wait for the asynchronous function to complete and get the result
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            setShutterSpeedSuccess = setManualShutterSpeedSuccessFuture.get();
+
+            // Set the ISO value to 12,800 by default or to the user's previous choice if he has already chosen before        
+            spdlog::info("Change the value of the ISO...");
+            std::future<bool> setManualIsoSuccessFuture = std::async(std::launch::async, [=]() 
+            {
+                return cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(this->BrightnessValue)); 
+            });
+
+            // Wait for the asynchronous function to complete and get the result
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            setIsoSuccess = setManualIsoSuccessFuture.get();
 
             // Checking whether changing the ISO succeeded or failed
             if(!setIsoSuccess)
@@ -412,20 +432,42 @@ bool CrSDKInterface::changeBrightness(int cameraNumber, int userBrightnessInput)
 
         if (userBrightnessInput <= 33)
         {
-            // Set shutter speed (0-33) and ISO value to 12800
-            setManualShutterSpeedSuccess = cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(userBrightnessInput));
+            spdlog::info("Change the value of the shutter speed...");
+            std::future<bool> setManualShutterSpeedSuccessFuture = std::async(std::launch::async, [=]() 
+            {
+                return cameraList[cameraNumber]->set_manual_shutter_speed_bool(CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(userBrightnessInput));
+            });
+
+            // Wait for the asynchronous function to complete and get the result
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            setManualShutterSpeedSuccess = setManualShutterSpeedSuccessFuture.get();
 
             // Checking whether the ISO value that the user selected is different from the current value
             if(isoValue != CONVERT_BRIGHTNESS_TO_ISO(DEFAULT_BRIGHTNESS_VALUE))
             {
                 spdlog::info("Change the value of the ISO...");
-                setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(DEFAULT_BRIGHTNESS_VALUE)); 
+                std::future<bool> setManualIsoSuccessFuture = std::async(std::launch::async, [=]() 
+                {
+                    return cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(DEFAULT_BRIGHTNESS_VALUE)); 
+                });
+
+                // Wait for the asynchronous function to complete and get the result
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                setManualIsoSuccess = setManualIsoSuccessFuture.get();
             }
         }
         else
         {
             // Set fixed shutter speed (33) and ISO (23-38)
-            setManualIsoSuccess = cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(userBrightnessInput));
+            spdlog::info("Change the value of the ISO...");
+            std::future<bool> setManualIsoSuccessFuture = std::async(std::launch::async, [=]() 
+            {
+                return cameraList[cameraNumber]->set_manual_iso_bool(CONVERT_BRIGHTNESS_TO_ISO(userBrightnessInput));
+            });
+
+            // Wait for the asynchronous function to complete and get the result
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            setManualIsoSuccess = setManualIsoSuccessFuture.get();
 
             // Checking whether the shutter speed value that the user selected is different from the current value
             if(ShutterSpeedValue != CONVERT_BRIGHTNESS_TO_SHUTTER_SPEED(DEFAULT_BRIGHTNESS_VALUE))

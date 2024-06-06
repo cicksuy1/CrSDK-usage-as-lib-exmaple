@@ -37,7 +37,8 @@ ShutterSpeedConverter::ShutterSpeedConverter()
         {"1/3200", 29},
         {"1/4000", 30},
         {"1/5000", 31},
-        {"1/6400", 32}
+        {"1/6400", 32},
+        {"1/8000", 33}
     };
 
     // Invert the map to create value to shutter mapping
