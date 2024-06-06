@@ -83,7 +83,7 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
     setupRoutes();
 
     // Initialize token bucket with maxTokens and refillRate parameters
-    initializeTokenBucket(/* maxTokens */ 10, /* refillRate */ 10); // Adjust these values as needed
+    initializeTokenBucket(/* maxTokens */ 3, /* refillRate */ 1, /* refillNumber */ 3); // Adjust these values as needed
 }
 
 Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin *gpioP, CrSDKInterface *crsdkInterface)
@@ -92,7 +92,7 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
     setupRoutes();
 
     // Initialize token bucket with maxTokens and refillRate parameters
-    initializeTokenBucket(/* maxTokens */ 10, /* refillRate */ 10); // Adjust these values as needed
+    initializeTokenBucket(/* maxTokens */ 3, /* refillRate */ 1, /* refillNumber */ 3); // Adjust these values as needed
 }
 
 void Server::setupRoutes()
@@ -185,23 +185,29 @@ void Server::run()
     }
 }
 
-void Server::initializeTokenBucket(int maxTokens, int refillRate)
+void Server::initializeTokenBucket(int maxTokens, int refillRate, int refillNumber)
 {
     try
     {
         maxTokens_ = maxTokens;
         currentTokens_ = maxTokens;
-        lastTokenTime_ = std::chrono::steady_clock::now();
 
         // Start a thread to refill tokens at the specified rate
-        std::thread([this, refillRate]()
-                    {
+        std::thread([this, refillRate, refillNumber]()
+        {
             while (true) 
             {
-                refillTokens();
-                std::this_thread::sleep_for(std::chrono::seconds(1) / refillRate);
-            } })
-            .detach();
+                try 
+                {
+                    refillTokens(refillNumber);
+                } 
+                catch (const std::exception& e) 
+                {
+                    spdlog::error("Error in refillTokens: {}", e.what());
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000 * refillRate)); 
+            } 
+        }).detach();
     }
     catch (const std::exception &e)
     {
@@ -230,19 +236,15 @@ bool Server::consumeToken()
     }
 }
 
-void Server::refillTokens()
+void Server::refillTokens(int refillNumber) 
 {
-    try
+    try 
     {
         std::lock_guard<std::mutex> lock(tokenMutex_);
-        auto currentTime = std::chrono::steady_clock::now();
-        auto timeDiff = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTokenTime_).count();
-        currentTokens_ = std::min(maxTokens_, currentTokens_ + static_cast<int>(timeDiff));
-        lastTokenTime_ = currentTime;
-    }
-    catch (const std::exception &e)
+        currentTokens_ = std::min(maxTokens_, currentTokens_ + refillNumber); 
+    } 
+    catch (const std::exception& e) 
     {
-        // Handle the exception and generate an error message
         spdlog::error("Error occurred during token refill: {}", e.what());
     }
 }
@@ -882,7 +884,7 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
             {
                 // Success message
                 response_json["message"] = "Successfully retrieved camera mode";
-                response_json["mode"] = crsdkInterface_->getCameraModeStr(camera_id);
+                response_json["mode"] =  crsdkInterface_->getCameraModeStr(camera_id);
                 res.status = 200; // OK
             }
             else

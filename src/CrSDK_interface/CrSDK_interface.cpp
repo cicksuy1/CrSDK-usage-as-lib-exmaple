@@ -202,37 +202,35 @@ bool CrSDKInterface::connectToCameras()
                     // Wait for the asynchronous task to complete
                     bool setFnumberStatus = setFnumberFuture.get();
 
-                    if (setFnumberStatus)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-                        std::promise<bool> switchToPModePromise;
-                        std::future<bool> switchToPModeFuture = switchToPModePromise.get_future();
-
-                        std::async([this, camera_id, &switchToPModePromise]()
-                        {
-                            switchToPModePromise.set_value(this->switchToPMode(camera_id)); // Set the value for the promise
-                        });
-
-                        // Wait for the asynchronous task to complete
-                        bool switchToPModeStatus = switchToPModeFuture.get();
-                        if (switchToMModeStatus)
-                        {
-                            spdlog::info("Switch to P mode was successful");
-                        }
-                        else
-                        {
-                            spdlog::error("Failed to switch to P mode");
-                        }
-                    } 
-                    else 
+                    if (!setFnumberStatus)
                     {
                         spdlog::error("Failed to set the camera {} F-number.", camera_id);
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                    std::promise<bool> switchToPModePromise;
+                    std::future<bool> switchToPModeFuture = switchToPModePromise.get_future();
+
+                    std::async([this, camera_id, &switchToPModePromise]()
+                    {
+                        switchToPModePromise.set_value(this->switchToPMode(camera_id)); // Set the value for the promise
+                    });
+
+                    // Wait for the asynchronous task to complete
+                    bool switchToPModeStatus = switchToPModeFuture.get();
+                    if (switchToMModeStatus)
+                    {
+                        spdlog::info("Switch to P mode was successful");
+                    }
+                    else
+                    {
+                        spdlog::error("Failed to switch to P mode");
                     }
                 }
                 else
                 {
                     spdlog::error("Failed to switch to M mode");
+                    spdlog::error("Failed to set the camera {} F-number.", camera_id);
                 }
 
                 camera_id++;

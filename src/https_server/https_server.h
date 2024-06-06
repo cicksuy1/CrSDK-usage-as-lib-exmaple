@@ -92,8 +92,9 @@ public:
      * @brief Initializes the token bucket parameters.
      * @param maxTokens The maximum number of tokens in the bucket.
      * @param refillRate The rate at which tokens are refilled per second.
+     * @param refillNumber The number of the tokens to refill.
      */
-    void initializeTokenBucket(int maxTokens, int refillRate);
+    void initializeTokenBucket(int maxTokens, int refillRate, int refillNumber);
 
     /**
      * @brief Consumes a token from the token bucket.
@@ -104,7 +105,7 @@ public:
     /**
      * @brief Refills tokens in the token bucket based on the elapsed time.
      */
-    void refillTokens();
+    void refillTokens(int refillRate);
 
     /**
     * @brief Stops the server gracefully.
