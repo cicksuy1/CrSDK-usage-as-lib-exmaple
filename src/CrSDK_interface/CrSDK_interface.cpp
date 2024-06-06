@@ -123,8 +123,12 @@ bool CrSDKInterface::connectToCameras()
             }
         }
 
-        bool allConnected = true;
+        if (camera_list != nullptr) 
+        {
+            camera_list->Release(); // Release the camera list object
+        }
 
+        bool allConnected = true;
         int camera_id = 0;
 
         for (auto &camera : cameraList)
@@ -743,7 +747,8 @@ bool CrSDKInterface::disconnectToCameras()
             if (camera && camera->is_connected())
             {
                 // Start the disconnect operation asynchronously
-                disconnectFutures.push_back(std::async(std::launch::async, [camera]() {
+                disconnectFutures.push_back(std::async(std::launch::async, [camera]() 
+                {
                     return camera->disconnect(); 
                 }));
             }
@@ -782,7 +787,7 @@ bool CrSDKInterface::releaseCameras()
             {
                 spdlog::info("Camera {} object exists, releasing...", i);
 
-                 auto future = std::async(std::launch::async, [&]()
+                auto future = std::async(std::launch::async, [&]()
                 {
                     cameraList[i]->release(); // Release the camera device
                 });

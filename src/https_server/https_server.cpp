@@ -451,10 +451,6 @@ void Server::handleSwitchToMMode(const httplib::Request &req, httplib::Response 
                 resolution_json["error"] = "Failed to switch to M mode";
                 res.status = 500; // Internal Server Error
             }
-
-            // Error message
-            resolution_json["error"] = "Failed to switch to M mode";
-            res.status = 500; // Internal Server Error
         }
 
         // Set the response content type to JSON
