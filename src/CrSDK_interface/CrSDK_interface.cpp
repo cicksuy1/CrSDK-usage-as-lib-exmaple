@@ -22,7 +22,6 @@ CrSDKInterface::CrSDKInterface()
 
 bool CrSDKInterface::initializeSDK()
 {
-
     // Change global locale to native locale
     std::locale::global(std::locale(""));
 
@@ -35,9 +34,6 @@ bool CrSDKInterface::initializeSDK()
     int minor = (version & 0x00FF0000) >> 16;
     int patch = (version & 0x0000FF00) >> 8;
     // int reserved = (version & 0x000000FF);
-
-    // spdlog::info("Remote SDK version: ");
-    // cli::tout << major << "." << minor << "." << std::setfill(TEXT('0')) << std::setw(2) << patch << "\n";
 
     spdlog::info("Initialize Remote SDK...");
     // spdlog::info("Working directory: {}", fs::current_path());
@@ -56,12 +52,13 @@ bool CrSDKInterface::initializeSDK()
 
 bool CrSDKInterface::enumerateCameraDevices()
 {
-
     spdlog::info("Enumerate connected camera devices...");
 
     // Create asynchronous tasks for enum_status and ncams
     auto enumTask = std::async([this]()
-                               { return SDK::EnumCameraObjects(&camera_list); });
+    { 
+        return SDK::EnumCameraObjects(&camera_list); 
+    });
 
     // Wait for both tasks to finish
     auto enumStatus = enumTask.get();
@@ -684,8 +681,20 @@ bool CrSDKInterface::downloadCameraSetting(int cameraNumber)
 {
     try
     {
-        cameraList[cameraNumber]->do_download_camera_setting_file();
-        return true;
+
+        // Download camera setting
+        std::promise<bool> downloadCameraSettingPromise;
+        std::future<bool> downloadCameraSettingFuture = downloadCameraSettingPromise.get_future();
+
+        std::async([this, cameraNumber, &downloadCameraSettingPromise]()
+        {
+            downloadCameraSettingPromise.set_value(this->cameraList[cameraNumber]->do_download_camera_setting_file()); 
+        });
+
+        // Wait for the asynchronous task to complete
+        bool downloadStatus = downloadCameraSettingFuture.get(); 
+
+        return downloadStatus;
     }
     catch (const std::exception &e)
     {
@@ -698,8 +707,18 @@ bool CrSDKInterface::uploadCameraSetting(int cameraNumber)
 {
     try
     {
-        cameraList[cameraNumber]->do_upload_camera_setting_file();
-        return true;
+        // Upload camera setting
+        std::promise<bool> uploadCameraSettingPromise;
+        std::future<bool> uploadCameraSettingFuture = uploadCameraSettingPromise.get_future();
+
+        std::async([this, cameraNumber, &uploadCameraSettingPromise]()
+        {
+            uploadCameraSettingPromise.set_value(this->cameraList[cameraNumber]->do_upload_camera_setting_file()); 
+        });
+
+        // Wait for the asynchronous task to complete
+        bool uploadStatus = uploadCameraSettingFuture.get(); 
+        return uploadStatus;
     }
     catch (const std::exception &e)
     {

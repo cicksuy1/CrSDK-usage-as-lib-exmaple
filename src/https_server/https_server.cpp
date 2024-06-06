@@ -797,13 +797,16 @@ void Server::handleDownloadCameraSetting(const httplib::Request &req, httplib::R
         }
 
         // Download camera setting logic...
-        bool success = crsdkInterface_->getCameraMode(camera_id);
+        bool success = crsdkInterface_->downloadCameraSetting(camera_id);
 
-        if (success) {
+        if (success) 
+        {
             // Success message
             resolution_json["message"] = "Successfully download camera setting";
             res.status = 200; // OK
-        } else {
+        } 
+        else 
+        {
             // Error message
             resolution_json["error"] = "Failed to download camera setting";
             res.status = 500; // Internal Server Error
@@ -862,11 +865,14 @@ void Server::handleUploadCameraSetting(const httplib::Request &req, httplib::Res
         // upload camera setting logic...
         bool success = crsdkInterface_->uploadCameraSetting(camera_id);
 
-        if (success) {
+        if (success) 
+        {
             // Success message
             resolution_json["message"] = "Successfully upload camera setting";
             res.status = 200; // OK
-        } else {
+        } 
+        else 
+        {
             // Error message
             resolution_json["error"] = "Failed to upload camera setting";
             res.status = 500; // Internal Server Error

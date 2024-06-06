@@ -199,8 +199,8 @@ public:
     bool execute_preset_focus_bool();
     void execute_APS_C_or_Full();
     void execute_movie_rec_toggle();
-    void do_download_camera_setting_file();
-    void do_upload_camera_setting_file();
+    bool do_download_camera_setting_file();
+    bool do_upload_camera_setting_file();
     void do_manual_download_camera_setting_file();
     void do_manual_upload_camera_setting_file();
     

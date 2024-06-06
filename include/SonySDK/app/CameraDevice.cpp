@@ -859,11 +859,12 @@ bool CameraDevice::get_aps_c_or_full_switching_setting()
 bool CameraDevice::get_camera_setting_saveread_state()
 {
     load_properties();
-    if (m_prop.camera_setting_save_read_state.current == SDK::CrCameraSettingSaveReadState::CrCameraSettingSaveReadState_Reading) {
-        tout << "Unable to download/upload Camera-Setting file. \n";
+    if (m_prop.camera_setting_save_read_state.current == SDK::CrCameraSettingSaveReadState::CrCameraSettingSaveReadState_Reading) 
+    {
+        spdlog::error("Unable to download/upload Camera-Setting file.");
         return false;
     }
-    tout << "Camera-Setting Save/Read State: " << format_camera_setting_save_read_state(m_prop.camera_setting_save_read_state.current) << '\n';
+    spdlog::info("Camera-Setting Save/Read State: {}.", format_camera_setting_save_read_state(m_prop.camera_setting_save_read_state.current));
     return true;
 }
 
@@ -4342,143 +4343,94 @@ void CameraDevice::execute_focus_bracket()
     capture_image();
 }
 
-void CameraDevice::do_download_camera_setting_file()
+bool CameraDevice::do_download_camera_setting_file()
 {
     if (false == get_camera_setting_saveread_state())
-        return;
-
-    if (m_prop.camera_setting_save_operation.current == SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable) {
-        tout << "Camera-Setting Save Operation: Enable\n";
-    } else {
-        tout << "Camera-Setting Save Operation: Disable\n";
+    {
+        return false;
     }
-
-    // File Name
-    tout << "\nPlease Enter the name of the file you want to save. \n";
-    tout << "(ex. CUMSET.DAT)\n";
-    tout << "If you do not specify a file name, the file will be saved with the default save name.\n" << std::endl;
-    tout << "[-1] Cancel input\n" << std::endl;
-    tout << "file name > ";
-    text name;
-    std::getline(tin, name);
-    text_stringstream ss(name);
-    int selected_index = 0;
-    ss >> selected_index;
-    if (-1 == selected_index) {
-        tout << "Input cancelled.\n";
-        return;
+        
+    if (m_prop.camera_setting_save_operation.current == SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable) 
+    {
+        spdlog::info("Camera-Setting Save Operation: Enable");
+    } 
+    else 
+    {
+        spdlog::error("Camera-Setting Save Operation: Disable");
     }
 
     // Get the latest status
     load_properties();
-    if (SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable != m_prop.camera_setting_save_operation.current) {
-        tout << "Unable to download Camera-Setting file. \n";
-        return;
+    if (SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable != m_prop.camera_setting_save_operation.current) 
+    {
+        spdlog::error("Unable to download Camera-Setting file.");
+        return false;
     }
-    // File Path
-#if defined(__APPLE__)
-    char path[MAC_MAX_PATH]; /*MAX_PATH*/
-    memset(path, 0, sizeof(path));
-    if(NULL == getcwd(path, sizeof(path) - 1)){
-        tout << "Folder path is too long.\n";
-        return;
-    }
-    char* delimit = "/";
-    if(strlen(path) + strlen(delimit) > MAC_MAX_PATH){
-        tout << "Folder path is too long.\n";
-        return;
-    }
-    strncat(path, delimit, strlen(delimit));
-    auto err = SDK::DownloadSettingFile(m_device_handle, SDK::CrDownloadSettingFileType::CrDownloadSettingFileType_Setup,(CrChar*)path, (CrChar*)name.c_str());
 
-if (CR_FAILED(err)) {
-    tout << "Download Camera-Setting file FAILED\n";
-}
-#else
+    // File Name
+    text name = "Camera-settings";
+
+    // File path
     auto path = fs::current_path();
     auto err = SDK::DownloadSettingFile(m_device_handle, SDK::CrDownloadSettingFileType::CrDownloadSettingFileType_Setup,(CrChar*)path.c_str(), (CrChar*)name.c_str());
 
-    if (CR_FAILED(err)) {
-        tout << "Download Camera-Setting file FAILED\n";
+    if (CR_FAILED(err)) 
+    {
+        spdlog::error("Download Camera-Setting file FAILED");
+        return false;
     }
-#endif
+
+    return true;
 }
 
-void CameraDevice::do_upload_camera_setting_file()
+bool CameraDevice::do_upload_camera_setting_file()
 {
     if (false == get_camera_setting_saveread_state())
-        return;
+        return false;
 
-    if (m_prop.camera_setting_read_operation.current == SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable) {
-        tout << "Camera-Setting Read Operation: Enable\n";
-    } else {
-        tout << "Camera-Setting Read Operation: Disable\n";
+    if (m_prop.camera_setting_read_operation.current == SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable)
+    {
+        spdlog::info("Camera-Setting Save Operation: Enable");
+    } 
+    else 
+    {
+        spdlog::error("Camera-Setting Save Operation: Disable");
     }
 
-    tout << "Have the camera load the configuration file on the PC.\n";
+    spdlog::info("Have the camera load the configuration file on the PC.");
 
     //Search for *.DAT in current_path
     std::vector<text> file_names;
     getFileNames(file_names);
 
-    if (file_names.size() == 0) {
-        tout << "DAT file not found.\n\n";
-        return;
-    }
-    
-    tout << std::endl << "Choose a number:\n";
-    tout << "[-1] Cancel input" << std::endl;
-    for (size_t i = 0; i < file_names.size(); i++)
+    if (file_names.size() == 0) 
     {
-        tout << "[" << i << "]" << file_names[i] << '\n';
-    }
-    tout << "[-1] Cancel input\n" << std::endl;
-
-    tout << "input>";
-    text input;
-    std::getline(tin, input);
-
-    text_stringstream ss(input);
-    int selected_index = 0;
-    ss >> selected_index;
-    if ((selected_index == 0 && input != TEXT("0")) || selected_index < 0 || selected_index >= file_names.size()) {
-        tout << "Input cancelled.\n";
-        return;
+        spdlog::error("DAT file not found.");
+        return false;
     }
 
-#if defined(__APPLE__)
-    char filename[MAC_MAX_PATH]; /*MAX_PATH*/
-    memset(filename, 0, sizeof(filename));
-    if(NULL == getcwd(filename, sizeof(filename) - 1)){
-        tout << "Folder path is too long.\n";
-        return;
-    }
-    char* delimit = "/";
-    if(strlen(filename) + strlen(delimit) + file_names[selected_index].length() > MAC_MAX_PATH){
-        tout << "Please shorten the file path. \n";
-        return;
-    }
-    strncat(filename, delimit, strlen(delimit));
-    strncat(filename, file_names[selected_index].c_str(), file_names[selected_index].length());
-#else 
     auto filepath = fs::current_path();
-    filepath.append(file_names[selected_index]);
     CrChar* filename = (CrChar*)filepath.c_str();
-#endif
 
-    tout << filename << "\n";
+    spdlog::info("File Name: {}.", filename);
+
     // Get the latest status
     load_properties();
-    if (SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable != m_prop.camera_setting_read_operation.current) {
-        tout << "Unable to upload Camera-Setting file. \n";
-        return;
+    if (SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable != m_prop.camera_setting_read_operation.current) 
+    {
+        spdlog::error("Unable to upload Camera-Setting file.");
+        return false;
     }
 
     auto err = SDK::UploadSettingFile(m_device_handle, SDK::CrUploadSettingFileType::CrUploadSettingFileType_Setup, filename);
 
-    if (CR_FAILED(err)) {
-        tout << "Upload Camera-Setting file FAILED\n";
+    if (CR_FAILED(err)) 
+    {
+        spdlog::error("Upload Camera-Setting file FAILED");
+        return false;
     }
+
+    return true;
 }
 
 void CameraDevice::do_manual_download_camera_setting_file()
@@ -4619,8 +4571,6 @@ void CameraDevice::do_manual_upload_camera_setting_file()
         tout << "Upload Camera-Setting file FAILED\n";
     }
 }
-
-
 
 void CameraDevice::getFileNames(std::vector<text> &file_names)
 {
