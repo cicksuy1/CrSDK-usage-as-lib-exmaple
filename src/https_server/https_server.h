@@ -89,6 +89,24 @@ public:
     void run();
 
     /**
+     * @brief Initializes the token bucket parameters.
+     * @param maxTokens The maximum number of tokens in the bucket.
+     * @param refillRate The rate at which tokens are refilled per second.
+     */
+    void initializeTokenBucket(int maxTokens, int refillRate);
+
+    /**
+     * @brief Consumes a token from the token bucket.
+     * @return True if a token was successfully consumed, false otherwise.
+     */
+    bool consumeToken();
+
+    /**
+     * @brief Refills tokens in the token bucket based on the elapsed time.
+     */
+    void refillTokens();
+
+    /**
     * @brief Stops the server gracefully.
     *
     * @return True if the server was stopped successfully, false otherwise.
@@ -115,6 +133,12 @@ private:
     std::thread monitoringThread;                               ///< Thread object for monitoring
     std::atomic<bool> &stopRequested;                           ///< A flag for stopping the server thread
     GpioPin *gpioPin;                                           ///< Declaration of GpioPin instance
+
+    // Token bucket parameters
+    int maxTokens_;                                             ///< Maximum number of tokens in the bucket
+    int currentTokens_;                                         ///< Current number of tokens in the bucket
+    std::chrono::steady_clock::time_point lastTokenTime_;       ///< Last time tokens were added
+    std::mutex tokenMutex_;   
 
     /**
      * @brief Set up HTTP routes for the server.
@@ -196,21 +220,21 @@ private:
      * @param req HTTP request received.
      * @param res HTTP response to be sent.
      */
-    void startCameras(const httplib::Request &req, httplib::Response &res);
+    void handleStartCameras(const httplib::Request &req, httplib::Response &res);
 
     /**
      * @brief HTTP handler for stopping the cameras.
      * @param req HTTP request received.
      * @param res HTTP response to be sent.
      */
-    void stopCameras(const httplib::Request &req, httplib::Response &res);
+    void handleStopCameras(const httplib::Request &req, httplib::Response &res);
 
      /**
      * @brief HTTP handler for restat the cameras.
      * @param req HTTP request received.
      * @param res HTTP response to be sent.
      */
-    void restatCameras(const httplib::Request &req, httplib::Response &res);
+    void handleRestatCameras(const httplib::Request &req, httplib::Response &res);
 
      /**
      * @brief HTTP handler for Receives a request to exit the program.

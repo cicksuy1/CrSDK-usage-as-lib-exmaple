@@ -50,17 +50,22 @@ ShutterSpeedConverter::ShutterSpeedConverter()
 // Function to convert shutter speed string to value
 int ShutterSpeedConverter::shutterStringToValue(const std::string& shutter) {
     std::string cleanedShutter;
-    for (char c : shutter) {
-        if (isdigit(c) || c == '.') {
+    for (char c : shutter) 
+    {
+        if (isdigit(c) || c == '.') 
+        {
             cleanedShutter += c;
         }
     }
 
     // Add '/' back to the string
     cleanedShutter.insert(cleanedShutter.begin() + 1, '/');
-    if (shutter_to_value.find(cleanedShutter) != shutter_to_value.end()) {
+    if (shutter_to_value.find(cleanedShutter) != shutter_to_value.end()) 
+    {
         return shutter_to_value[cleanedShutter];
-    } else {
+    } 
+    else 
+    {
         // Handle invalid shutter speed string
         spdlog::error("Invalid shutter speed string: {}", shutter);
         return -1; // or throw an exception

@@ -4766,7 +4766,7 @@ void CameraDevice::OnWarning(CrInt32u warning)
 {
     text id(this->get_id());
     if (SDK::CrWarning_Connect_Reconnecting == warning) {
-        tout << "Device Disconnected. Reconnecting... " << m_info->GetModel() << " (" << id.data() << ")\n";
+        spdlog::warn("Device Disconnected. Reconnecting... {} ({})",  m_info->GetModel(), id.data());
         return;
     }
     switch (warning)
