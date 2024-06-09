@@ -115,6 +115,9 @@ void Server::setupRoutes()
     server.Get("/get_camera_mode", [this](const httplib::Request &req, httplib::Response &res)
                { handleGetCameraMode(req, res); });
 
+    server.Get("/get_camera_brightness", [this](const httplib::Request &req, httplib::Response &res)
+               { handleGetCameraBrightness(req, res); });
+
     server.Get("/download_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
                { handleDownloadCameraSetting(req, res); });
 
@@ -617,6 +620,7 @@ void Server::handleChangeBrightness(const httplib::Request &req, httplib::Respon
                 return;
             }
 
+            // Checking whether the camera is in manual mode
             if (crsdkInterface_->cameraModes[camera_id] != "m")
             {
                 // Handling camera mode is not M.
@@ -910,6 +914,101 @@ void Server::handleGetCameraMode(const httplib::Request &req, httplib::Response 
 
         // Error message
         response_json["error"] = "Failed to retrieve camera mode";
+        res.status = 500; // Internal Server Error
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+}
+
+void Server::handleGetCameraBrightness(const httplib::Request &req, httplib::Response &res)
+{
+    // Create a JSON object
+    json response_json;
+
+    try
+    {
+        // Enable CORS
+        res.set_header("Access-Control-Allow-Origin", "*"); // You might want to restrict this in production
+
+        if (consumeToken())
+        {
+            // Check if the query parameter 'camera_id' is present
+            auto camera_id_param = req.get_param_value("camera_id");
+
+            if (camera_id_param.empty())
+            {
+                // Handle missing camera_id.
+                response_json["error"] = "Missing camera_id parameter.";
+                res.status = 400; // Bad Request.
+
+                // Set the response content type to JSON
+                res.set_content(response_json.dump(), "application/json");
+                return;
+            }
+
+            int camera_id = std::stoi(camera_id_param);
+
+            // Use the macro to get the reversed index
+            camera_id = REVERSE_INDEX(camera_id);
+
+            if (camera_id < 0 || camera_id >= crsdkInterface_->cameraList.size())
+            {
+                // Handling camera_id out of range
+                response_json["error"] = "Camera_id out of range.";
+                res.status = 400; // Bad Request
+
+                // Set the response content type to JSON
+                res.set_content(response_json.dump(), "application/json");
+                return;
+            }
+
+            // Checking whether the camera is in manual mode
+            if (crsdkInterface_->cameraModes[camera_id] != "m")
+            {
+                // Handling camera mode is not M.
+                spdlog::error("Geting the camera {} brightness value is not possible because the camera is not M mode", camera_id);
+                response_json["error"] = "Geting the camera brightness value is not possible because the camera is not M mode.";
+                res.status = 405; // Method not allowed.
+
+                // Set the response content type to JSON
+                res.set_content(response_json.dump(), "application/json");
+                return;
+            }
+
+            // get camera brightness logic...
+            int brightness = crsdkInterface_->getCameraBrightness(camera_id);
+
+            if (brightness != -1)
+            {
+                // Success message
+                response_json["message"] = "Successfully retrieved camera brightness";
+                response_json["brightness value"] =  brightness;
+                res.status = 200; // OK
+            }
+            else
+            {
+                // Error message
+                response_json["error"] = "Failed to retrieve camera brightness";
+                res.status = 500; // Internal Server Error
+            }           
+        }
+        else
+        {
+            response_json["error"] = "Rate limit exceeded";
+            res.status = 429; // HTTP 429 Too Many Requests
+        }
+
+        // Set the response content type to JSON
+        res.set_content(response_json.dump(), "application/json");
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception and generate an error message
+        spdlog::error("Get camera brightness Route Error: {}", e.what());
+
+        // Error message
+        response_json["error"] = "Failed to retrieve camera brightness";
         res.status = 500; // Internal Server Error
 
         // Set the response content type to JSON

@@ -159,6 +159,13 @@ public:
     bool getCamerasMode();
 
     /**
+     * @brief Get information about a specific camera brightness (The brightness value is represented as a number between 0 and 48 where 0 is the darkest and 48 is the lightest).
+     * @param cameraNumber The camera ID (0-based indexing)
+     * @return number (0-48) if get the cameras mode was successful, -1 otherwise.
+    */
+    int getCameraBrightness(int cameraNumber);
+
+    /**
      * @brief Get information about a specific camera mode (auto or manual).
      * @param cameraNumber The number of the camera that the user wants to get the camera mode.
      * @return True if get the camera mode was successful, false otherwise.

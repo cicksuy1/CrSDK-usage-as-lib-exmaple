@@ -684,6 +684,20 @@ bool CrSDKInterface::getCamerasMode()
     }
 }
 
+int CrSDKInterface::getCameraBrightness(int cameraNumber)
+{
+    if (this->BrightnessValue >= 0) 
+    {
+        spdlog::info("Retrieved brightness value for camera {}: {}", cameraNumber, this->BrightnessValue);
+        return this->BrightnessValue;
+    }
+    else 
+    {
+        spdlog::error("Failed to retrieve camera {} brightness", cameraNumber);
+        return -1;
+    }
+}
+
 bool CrSDKInterface::getCameraMode(int cameraNumber)
 {
     try

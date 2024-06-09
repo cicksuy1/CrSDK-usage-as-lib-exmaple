@@ -189,6 +189,14 @@ private:
     void handleGetCameraMode(const httplib::Request &req, httplib::Response &res);
 
     /**
+     * @brief HTTP handler for Receives a request to get the brightness value of the camera.
+     * @param req HTTP request received.
+     * @param res HTTP response to be sent.
+     */
+    void handleGetCameraBrightness(const httplib::Request &req, httplib::Response &res);
+
+
+    /**
      * @brief HTTP handler for download the camera setting file to PC.
      * @param req HTTP request received.
      * @param res HTTP response to be sent.

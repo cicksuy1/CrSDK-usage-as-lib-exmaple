@@ -79,6 +79,7 @@ Once the server is running, you can send GET requests to the following endpoints
 | `/change_brightness<camera_id><brightness_value>`   | HTTPS handler for Receives a request to change brightness.
 | `/change_af_area_position<camera_id><x><y>`         | HTTPS handler for Receives a request to change AF area position.
 | `/get_camera_mode<camera_id>`                       | HTTPS handler for Receives a request to get camera mode.
+| `/get_camera_brightness<camera_id>`                 | HTTPS handler for Receives a request to get camera brightness.
 | `/download_camera_setting<camera_id>`               | HTTPS handler for Receives a request to download the camera setting file to PC.
 | `/upload_camera_setting<camera_id>`                 | HTTPS handler for Receives a request to upload the camera setting file to Camera.
 | `/get_f_number<camera_id>`                          | HTTPS handler for Receives a request to get F-number index.
@@ -268,7 +269,55 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 5. Change AF Area Position
+### 5. Get Camera Brightness
+
+**Endpoint**: `/get_camera_brightness`
+
+**Method**: `GET`
+
+**Description**: Get the brightness value of the specified camera.
+
+**Parameters**:
+- **camera_id** (required): The ID of the camera.
+
+**Response**:
+- **200 OK**: Successfully retrieved brightness.
+  ```json
+  {
+    "message": "Successfully retrieved camera brightness"
+  }
+  ```
+- **400 Bad Request**: Missing or invalid parameters.
+  ```json
+  {
+    "error": "Missing camera_id parameter."
+  }
+  ```
+  ```json
+  {
+    "error": "Camera_id out of range."
+  }
+  ```
+- **405 Method Not Allowed**: Camera is not in M mode.
+  ```json
+  {
+    "error": "Geting the camera brightness is not possible because the camera is not M mode."
+  }
+  ```
+- **429 Too Many Requests**: Rate limit exceeded.
+  ```json
+  {
+    "error": "Rate limit exceeded"
+  }
+  ```
+- **500 Internal Server Error**: Failed to get brightness.
+  ```json
+  {
+    "error": "Failed to retrieve camera brightness"
+  }
+  ```
+
+### 6. Change AF Area Position
 
 **Endpoint**: `/changeAFAreaPosition`
 
@@ -333,7 +382,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 6. Get Camera Mode
+### 7. Get Camera Mode
 
 **Endpoint**: `/getCameraMode`
 
@@ -376,7 +425,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 7. Download Camera Setting
+### 8. Download Camera Setting
 
 **Endpoint**: `/downloadCameraSetting`
 
@@ -418,7 +467,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 8. Upload Camera Setting
+### 9. Upload Camera Setting
 
 **Endpoint**: `/uploadCameraSetting`
 
@@ -460,7 +509,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 9. Get F-number
+### 1. Get F-number
 
 **Endpoint**: `/getFnumber`
 
@@ -505,7 +554,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 10. Set F-number
+### 11. Set F-number
 
 **Endpoint**: `/setFnumber`
 
@@ -558,7 +607,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 11. Start Cameras
+### 12. Start Cameras
 
 **Endpoint**: `/startCameras`
 
@@ -591,7 +640,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 12. Stop Cameras
+### 13. Stop Cameras
 
 **Endpoint**: `/stopCameras`
 
@@ -616,7 +665,7 @@ The base URL for the API is: `http://yourserver.com`
   {"error": "Stopping the cameras failed, gpio is not active"}
   ```
 
-### 13. Restart Cameras
+### 14. Restart Cameras
 
 **Endpoint**: `/restartCameras`
 
@@ -641,7 +690,7 @@ The base URL for the API is: `http://yourserver.com`
   {"error": "Restarting the cameras failed, gpio is not active."}
   ```
 
-### 14. Exit Program
+### 15. Exit Program
 
 **Endpoint**: `/exit`
 
