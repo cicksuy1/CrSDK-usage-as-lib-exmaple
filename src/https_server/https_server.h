@@ -104,6 +104,7 @@ public:
 
     /**
      * @brief Refills tokens in the token bucket based on the elapsed time.
+     * @param refillNumber The number of the tokens to refill.
      */
     void refillTokens(int refillRate);
 
@@ -139,7 +140,7 @@ private:
     int maxTokens_;                                             ///< Maximum number of tokens in the bucket
     int currentTokens_;                                         ///< Current number of tokens in the bucket
     std::chrono::steady_clock::time_point lastTokenTime_;       ///< Last time tokens were added
-    std::mutex tokenMutex_;   
+    std::mutex tokenMutex_;                                     ///< Mutex for thread safety
 
     /**
      * @brief Set up HTTP routes for the server.
