@@ -83,7 +83,7 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
     setupRoutes();
 
     // Initialize token bucket with maxTokens and refillRate parameters
-    initializeTokenBucket(/* maxTokens */ 3, /* refillRate */ 1, /* refillNumber */ 3); // Adjust these values as needed
+    initializeTokenBucket(/* maxTokens */ 10, /* refillRate */ 1, /* refillNumber */ 10); // Adjust these values as needed
 }
 
 Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin *gpioP, CrSDKInterface *crsdkInterface)
@@ -92,7 +92,7 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
     setupRoutes();
 
     // Initialize token bucket with maxTokens and refillRate parameters
-    initializeTokenBucket(/* maxTokens */ 3, /* refillRate */ 1, /* refillNumber */ 3); // Adjust these values as needed
+    initializeTokenBucket(/* maxTokens */ 10, /* refillRate */ 1, /* refillNumber */ 10); // Adjust these values as needed
 }
 
 void Server::setupRoutes()
@@ -271,12 +271,11 @@ bool Server::stopServer()
 
 void Server::startMonitoringThread()
 {
-
     // std::this_thread::sleep_for(std::chrono::seconds(0));
     monitoringThread = std::thread([this]()
-                                   {
-
-        while (true) {
+    {
+        while (true) 
+        {
             try {
                 // Create a new HTTP client with SSL and specify the CA certificate
                 httplib::SSLClient cli(host_, port_); // host, port
@@ -335,8 +334,11 @@ void Server::restartServer()
     // Wait some time before restarting (to prevent flooding errors)
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    // Restart the server by creating a new instance
-    server.listen(host_, port_);
+    // Restart the server
+    while (!stopRequested.load())
+    {
+        server.listen(host_, port_);
+    }
 
     spdlog::info("Server initialization succeeded");
 }
