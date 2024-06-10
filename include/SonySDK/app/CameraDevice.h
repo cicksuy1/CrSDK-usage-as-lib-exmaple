@@ -20,6 +20,11 @@ typedef int errno_t;
 #include "PropertyValueTable.h"
 #include "Text.h"
 #include "MessageDefine.h"
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <iomanip>  // For formatted output
+#include <stdexcept>  // For exception handling
+#include <future>
 
 namespace cli
 {
@@ -78,15 +83,20 @@ public:
 
     void get_aperture();
     void get_iso();
+    cli::text get_iso_text();
     void get_shutter_speed();
+    cli::text get_shutter_speed_text();
     void get_position_key_setting();
     void get_exposure_program_mode();
+    void get_exposure_program_mode(cli::text& cameraMode);
+    void get_exposure_program_mode(std::promise<void>& prom, cli::text& cameraMode);
     void get_still_capture_mode();
     void get_focus_mode();
     void get_focus_area();
     void get_live_view();
     void get_live_view_image_quality();
     void get_af_area_position();
+    bool get_af_area_position_bool();
     void get_select_media_format();
     void get_white_balance();
     bool get_custom_wb();
@@ -123,16 +133,26 @@ public:
     bool get_focus_position_setting();
 
     void set_aperture();
+    bool set_manual_aperture(int FnumberValue);
+    bool get_manual_aperture();
+    cli::text get_manual_aperture_str();
     void set_iso();
+    bool set_manual_iso_bool(int userInput);
     bool set_save_info() const;
     void set_shutter_speed();
+    void set_manual_shutter_speed(int userInput);
+    bool set_manual_shutter_speed_bool(int userInput);
     void set_position_key_setting();
     void set_exposure_program_mode();
+    bool set_exposure_program_P_mode( cli::text& cameraMode);
+    bool set_exposure_program_P_Auto_mode( cli::text& cameraMode);
+    bool set_exposure_program_M_mode( cli::text& cameraMode);
     void set_still_capture_mode();
     void set_focus_mode();
     void set_focus_area();
     void set_live_view_image_quality();
     void set_af_area_position();
+    bool set_manual_af_area_position(int x_y);
     void set_white_balance();
     void set_custom_wb();
     void set_zoom_operation();
@@ -155,6 +175,7 @@ public:
     void set_gain_db_value();
     void set_white_balance_tint();
     void set_shutter_speed_value();
+    void set_manual_shutter_speed_value(int userInput);
     void set_focus_bracket_focus_range();
     void set_focus_bracket_shot_num();
     void set_movie_image_stabilization_steady_shot();
@@ -165,19 +186,24 @@ public:
     void set_silent_mode_auto_pixel_mapping();
     void set_shutter_type();
     void set_focus_position_setting();
-
     void execute_lock_property(CrInt16u code);
     void set_select_media_format();
     void execute_movie_rec();
     void execute_downup_property(CrInt16u code);
     void execute_pos_xy(CrInt16u code);
+    void execute_pos_xy(CrInt16u code, int x_y);
     void change_live_view_enable();
     bool is_live_view_enable() { return m_lvEnbSet; };
     void execute_preset_focus();
+    void execute_preset_focus_void();
+    bool execute_preset_focus_bool();
     void execute_APS_C_or_Full();
     void execute_movie_rec_toggle();
-    void do_download_camera_setting_file();
-    void do_upload_camera_setting_file();
+    bool do_download_camera_setting_file();
+    bool do_upload_camera_setting_file();
+    void do_manual_download_camera_setting_file();
+    void do_manual_upload_camera_setting_file();
+    
 
     void execute_request_displaystringlist();
     void execute_get_displaystringtypes();
@@ -233,6 +259,7 @@ public:
     virtual void OnPropertyChangedCodes(CrInt32u num, CrInt32u* codes) override;
     virtual void OnLvPropertyChangedCodes(CrInt32u num, CrInt32u* codes) override;
     virtual void OnNotifyContentsTransfer(CrInt32u notify, SCRSDK::CrContentHandle contentHandle, CrChar* filename) override;
+    const std::atomic<bool>& getM_connected();
 
 private:
     void load_properties(CrInt32u num = 0, CrInt32u* codes = nullptr);

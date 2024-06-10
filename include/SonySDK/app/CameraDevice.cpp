@@ -44,6 +44,12 @@ namespace fs = std::filesystem;
 #include <conio.h>
 #endif
 
+#include <unistd.h>
+#include <iostream>
+#include <cstdlib>
+#include <spdlog/fmt/bundled/core.h>
+using namespace std;
+
 
 // Enumerator
 enum Password_Key {
@@ -145,73 +151,159 @@ bool CameraDevice::getfingerprint()
     return false;
 }
 
-bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect)
-{
+// bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect)
+// {
+//     const char* inputId = "admin";
+//     char inputPassword[32] = { 0 };
+//     if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport())
+//     {
+//         if (!is_getfingerprint())
+//         {
+//             bool resFp = getfingerprint();
+//             if (resFp)
+//             {
+//                 tout << "fingerprint: \n" << m_fingerprint.c_str() << std::endl;
+//                 tout << std::endl << "Are you sure you want to continue connecting ? (y/n) > ";
+//                 text yesno;
+//                 std::getline(cli::tin, yesno);
+//                 if (yesno != TEXT("y"))
+//                 {
+//                     m_fingerprint.clear();
+//                     return false;
+//                 }
+//             }
+//         }
+//         if (!is_setpassword())
+//         {
+//             cli::tout << "Please SSH password > ";
+//             cli::text userPw;
+ 
+//             // Stores the password
+//             char maskPw = '*';
+//             char ch_ipt = {};
+
+//             // Until condition is true
+//             while (true) {
+
+// #if defined (_WIN32) || defined(_WIN64)
+//                 ch_ipt = _getch();
+// #else
+//                 ch_ipt = getch_for_Nix();
+// #endif
+
+//                 // if the ch_ipt
+//                 if (ch_ipt == Password_Key_Enter) {
+//                     tout << std::endl;
+//                     break;
+//                 }
+//                 else if (ch_ipt == Password_Key_Back
+//                     && userPw.length() != 0) {
+//                     userPw.pop_back();
+
+//                     // Cout statement is very
+//                     // important as it will erase
+//                     // previously printed character
+//                     tout << "\b \b";
+
+//                     continue;
+//                 }
+
+//                 // Without using this, program
+//                 // will crash as \b can't be
+//                 // print in beginning of line
+//                 else if (ch_ipt == Password_Key_Back
+//                     && userPw.length() == 0) {
+//                     continue;
+//                 }
+
+//                 userPw.push_back(ch_ipt);
+//                 tout << maskPw;
+//             }
+
+// #if defined(_WIN32) || (_WIN64)
+//             mbstate_t mbstate;
+//             size_t retPw;
+//             memset(&mbstate, 0, sizeof(mbstate_t));
+//             const wchar_t* wcsInStr = userPw.c_str();
+//             errno_t erno = wcsrtombs_s(&retPw, inputPassword, &wcsInStr, 32, &mbstate);
+// #else
+//             strncpy(inputPassword, (const char*)userPw.c_str(), userPw.size());
+// #endif
+//             m_userPassword = std::string(inputPassword, userPw.size());
+
+//         }
+//     }
+
+//     m_spontaneous_disconnection = false;
+//     auto connect_status = SDK::Connect(m_info, this, &m_device_handle, openMode, reconnect, inputId, m_userPassword.c_str(), m_fingerprint.c_str(), (CrInt32u)m_fingerprint.size());
+//     if (CR_FAILED(connect_status)) {
+//         text id(this->get_id());
+//         tout << std::endl << "Failed to connect: 0x" << std::hex << connect_status << std::dec << ". " << m_info->GetModel() << " (" << id.data() << ")\n";
+//         m_userPassword.clear();
+//         return false;
+//     }
+//     set_save_info();
+//     return true;
+// }
+
+bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnectingSet reconnect) {
     const char* inputId = "admin";
     char inputPassword[32] = { 0 };
-    if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport())
-    {
-        if (!is_getfingerprint())
-        {
+
+    // Check if SSH support is enabled
+    if (SDK::CrSSHsupportValue::CrSSHsupport_ON == get_sshsupport()) {
+        std::cout << "SSH support is ON." << std::endl;
+
+        // Get the fingerprint
+        if (!is_getfingerprint()) {
             bool resFp = getfingerprint();
-            if (resFp)
-            {
-                tout << "fingerprint: \n" << m_fingerprint.c_str() << std::endl;
-                tout << std::endl << "Are you sure you want to continue connecting ? (y/n) > ";
-                text yesno;
-                std::getline(cli::tin, yesno);
-                if (yesno != TEXT("y"))
-                {
+            if (resFp) {
+                std::cout << "Fingerprint retrieved: " << m_fingerprint << std::endl;
+                std::cout << "Prompting user to continue..." << std::endl;
+
+                std::string yesno;
+                std::cout << "Are you sure you want to continue connecting? (y/n) > ";
+                std::getline(std::cin, yesno);
+                if (yesno != "y") {
+                    std::cout << "Connection aborted by user." << std::endl;
                     m_fingerprint.clear();
                     return false;
                 }
+            } else {
+                std::cout << "Failed to retrieve fingerprint." << std::endl;
+                return false;
             }
         }
-        if (!is_setpassword())
-        {
-            cli::tout << "Please SSH password > ";
-            cli::text userPw;
- 
-            // Stores the password
+
+        // Get the SSH password
+        if (!is_setpassword()) {
+            std::cout << "Please enter SSH password > ";
+            std::string userPw;
+
+            // Input handling for password with masking
             char maskPw = '*';
             char ch_ipt = {};
 
-            // Until condition is true
             while (true) {
-
 #if defined (_WIN32) || defined(_WIN64)
                 ch_ipt = _getch();
 #else
-                ch_ipt = getch_for_Nix();
+                ch_ipt = getch_for_Nix();  // Custom function for non-Windows platforms
 #endif
 
-                // if the ch_ipt
-                if (ch_ipt == Password_Key_Enter) {
-                    tout << std::endl;
+                if (ch_ipt == '\n' || ch_ipt == '\r') {
+                    std::cout << std::endl;
                     break;
-                }
-                else if (ch_ipt == Password_Key_Back
-                    && userPw.length() != 0) {
+                } else if (ch_ipt == '\b' && !userPw.empty()) {
                     userPw.pop_back();
-
-                    // Cout statement is very
-                    // important as it will erase
-                    // previously printed character
-                    tout << "\b \b";
-
+                    std::cout << "\b \b";
                     continue;
-                }
-
-                // Without using this, program
-                // will crash as \b can't be
-                // print in beginning of line
-                else if (ch_ipt == Password_Key_Back
-                    && userPw.length() == 0) {
+                } else if (ch_ipt == '\b' && userPw.empty()) {
                     continue;
                 }
 
                 userPw.push_back(ch_ipt);
-                tout << maskPw;
+                std::cout << maskPw;
             }
 
 #if defined(_WIN32) || (_WIN64)
@@ -224,20 +316,31 @@ bool CameraDevice::connect(SCRSDK::CrSdkControlMode openMode, SCRSDK::CrReconnec
             strncpy(inputPassword, (const char*)userPw.c_str(), userPw.size());
 #endif
             m_userPassword = std::string(inputPassword, userPw.size());
-
+            std::cout << "Password entered." << std::endl;
         }
     }
 
     m_spontaneous_disconnection = false;
-    auto connect_status = SDK::Connect(m_info, this, &m_device_handle, openMode, reconnect, inputId, m_userPassword.c_str(), m_fingerprint.c_str(), (CrInt32u)m_fingerprint.size());
+
+    // Attempt to connect
+    auto connect_status = SDK::Connect(
+        m_info, this, &m_device_handle, openMode, reconnect, 
+        inputId, m_userPassword.c_str(), m_fingerprint.c_str(), 
+        (CrInt32u)m_fingerprint.size()
+    );
+
+    // Check if the connection failed
     if (CR_FAILED(connect_status)) {
-        text id(this->get_id());
-        tout << std::endl << "Failed to connect: 0x" << std::hex << connect_status << std::dec << ". " << m_info->GetModel() << " (" << id.data() << ")\n";
+        std::cout << "Failed to connect. Error code: 0x" << std::hex << connect_status << std::dec 
+                  << ". Model: " << m_info->GetModel() << std::endl;
+
         m_userPassword.clear();
         return false;
     }
-    set_save_info();
-    return true;
+
+    set_save_info();  // Additional configuration or state-setting
+
+    return true;  // Connection was successful
 }
 
 bool CameraDevice::disconnect()
@@ -245,7 +348,7 @@ bool CameraDevice::disconnect()
     // m_fingerprint.clear();  // Use as needed
     // m_userPassword.clear(); // Use as needed
     m_spontaneous_disconnection = true;
-    tout << "Disconnect from camera...\n";
+    spdlog::info("Disconnect from camera...");
     auto disconnect_status = SDK::Disconnect(m_device_handle);
     if (CR_FAILED(disconnect_status)) {
         tout << "Disconnect failed to initialize.\n";
@@ -256,7 +359,7 @@ bool CameraDevice::disconnect()
 
 bool CameraDevice::release()
 {
-    tout << "Release camera...\n";
+    spdlog::info("Release camera...");
     auto finalize_status = SDK::ReleaseDevice(m_device_handle);
     m_device_handle = 0; // clear
     if (CR_FAILED(finalize_status)) {
@@ -433,10 +536,27 @@ void CameraDevice::get_iso()
     tout << "ISO: " << format_iso_sensitivity(m_prop.iso_sensitivity.current) << '\n';
 }
 
+cli::text CameraDevice::get_iso_text()
+{
+    load_properties();
+    cli::text iso = format_iso_sensitivity(m_prop.iso_sensitivity.current);
+    // spdlog::info("{}", iso);
+    return iso;
+}
+
 void CameraDevice::get_shutter_speed()
 {
     load_properties();
     tout << "Shutter Speed: " << format_shutter_speed(m_prop.shutter_speed.current) << '\n';
+}
+
+cli::text CameraDevice::get_shutter_speed_text()
+{
+    load_properties();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    cli::text shutterSpeed = format_shutter_speed(m_prop.shutter_speed.current);
+    // spdlog::info("Shutter Speed: {}", shutterSpeed);
+    return shutterSpeed;
 }
 
 void CameraDevice::get_position_key_setting()
@@ -449,6 +569,44 @@ void CameraDevice::get_exposure_program_mode()
 {
     load_properties();
     tout << "Exposure Program Mode: " << format_exposure_program_mode(m_prop.exposure_program_mode.current) << '\n';
+}
+
+void CameraDevice::get_exposure_program_mode(cli::text& cameraMode)
+{
+    load_properties();
+    cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
+
+    // Update the flag of the camera mode
+    if(cameraMode == "Movie_P")
+    {
+        cameraMode = 'p';
+    } 
+    else if (cameraMode == "Movie_M")
+    {
+        cameraMode = 'm';
+    }
+}
+
+void CameraDevice::get_exposure_program_mode(std::promise<void>& prom, cli::text& cameraMode)
+{
+    load_properties();
+    cameraMode = format_exposure_program_mode(m_prop.exposure_program_mode.current);
+
+    // Update the flag of the camera mode
+    if(cameraMode == "Movie_P")
+    {
+        cameraMode = 'p';
+    } 
+    else if (cameraMode == "Movie_M")
+    {
+        cameraMode = 'm';
+    }
+
+    // Log the current mode for debugging
+    // spdlog::info("Mode after getting exposure program: {}", cameraMode);
+
+    // When done, set the promise
+    prom.set_value();
 }
 
 void CameraDevice::get_still_capture_mode()
@@ -700,11 +858,12 @@ bool CameraDevice::get_aps_c_or_full_switching_setting()
 bool CameraDevice::get_camera_setting_saveread_state()
 {
     load_properties();
-    if (m_prop.camera_setting_save_read_state.current == SDK::CrCameraSettingSaveReadState::CrCameraSettingSaveReadState_Reading) {
-        tout << "Unable to download/upload Camera-Setting file. \n";
+    if (m_prop.camera_setting_save_read_state.current == SDK::CrCameraSettingSaveReadState::CrCameraSettingSaveReadState_Reading) 
+    {
+        spdlog::error("Unable to download/upload Camera-Setting file.");
         return false;
     }
-    tout << "Camera-Setting Save/Read State: " << format_camera_setting_save_read_state(m_prop.camera_setting_save_read_state.current) << '\n';
+    spdlog::info("Camera-Setting Save/Read State: {}.", format_camera_setting_save_read_state(m_prop.camera_setting_save_read_state.current));
     return true;
 }
 
@@ -718,7 +877,6 @@ bool CameraDevice::get_playback_media()
     tout << "Playback Media: " << format_playback_media(m_prop.playback_media.current) << '\n';
     return true;
 }
-
 
 bool CameraDevice::get_gain_base_sensitivity()
 {
@@ -1117,11 +1275,67 @@ void CameraDevice::set_aperture()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+bool CameraDevice::set_manual_aperture(int FnumberValue)
+{
+    if (1 != m_prop.f_number.writable) {
+        // Not a settable property
+        spdlog::error("Aperture is not writable");
+        return false;
+    }
+
+    auto& values = m_prop.f_number.possible;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_FNumber);
+    prop.SetCurrentValue(values[FnumberValue]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    return true;
+}
+
+bool CameraDevice::get_manual_aperture()
+{
+    try
+    {
+        load_properties();
+        float formattedFNumber = static_cast<float>(m_prop.f_number.current) / 100.0f; // Convert and format
+        spdlog::info("F-number: {:.1f}", formattedFNumber); // Log with one decimal place  
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+}
+
+cli::text CameraDevice::get_manual_aperture_str() 
+{
+    try 
+    {
+        load_properties();
+        float formattedFNumber = static_cast<float>(m_prop.f_number.current) / 100.0f;
+
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << formattedFNumber;
+        return oss.str();
+    } 
+    catch (const std::exception& e) 
+    {
+        spdlog::error("Error getting F-number: {}", e.what());
+        return "";
+    }
+}
+
 void CameraDevice::set_iso()
 {
     if (1 != m_prop.iso_sensitivity.writable) {
         // Not a settable property
-        tout << "ISO is not writable\n";
+        spdlog::error("ISO is not writable");
         return;
     }
 
@@ -1163,6 +1377,27 @@ void CameraDevice::set_iso()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+bool CameraDevice::set_manual_iso_bool(int userInput)
+{
+    if (1 != m_prop.iso_sensitivity.writable) 
+    {
+        // Not a settable property
+        spdlog::error("ISO is not writable");
+        return false;
+    }
+
+    auto& values = m_prop.iso_sensitivity.possible;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_IsoSensitivity);
+    prop.SetCurrentValue(values[userInput]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    return true;
+}
+
 bool CameraDevice::set_save_info() const
 {
 #if defined(__APPLE__)
@@ -1176,7 +1411,7 @@ bool CameraDevice::set_save_info() const
         , path, (char*)"", ImageSaveAutoStartNo);
 #else
     text path = fs::current_path().native();
-    tout << path.data() << '\n';
+    // tout << path.data() << '\n';
 
     auto save_status = SDK::SetSaveInfo(m_device_handle
         , const_cast<text_char*>(path.data()), TEXT(""), ImageSaveAutoStartNo);
@@ -1234,6 +1469,44 @@ void CameraDevice::set_shutter_speed()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+void CameraDevice::set_manual_shutter_speed(int userInput)
+{
+    if (1 != m_prop.shutter_speed.writable) {
+        // Not a settable property
+        tout << "Shutter Speed is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.shutter_speed.possible;
+   
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
+    prop.SetCurrentValue(values[userInput]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+bool CameraDevice::set_manual_shutter_speed_bool(int userInput)
+{
+    if (1 != m_prop.shutter_speed.writable) {
+        // Not a settable property
+        spdlog::error("Shutter Speed is not writable");
+        return false;
+    }
+
+    auto& values = m_prop.shutter_speed.possible;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeed);
+    prop.SetCurrentValue(values[userInput]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    return true;
+}
+
 void CameraDevice::set_position_key_setting()
 {
     if (1 != m_prop.position_key_setting.writable) {
@@ -1284,7 +1557,7 @@ void CameraDevice::set_exposure_program_mode()
 {
     if (1 != m_prop.exposure_program_mode.writable) {
         // Not a settable property
-        tout << "Exposure Program Mode is not writable\n";
+        spdlog::error("Exposure Program Mode is not writable");
         return;
     }
 
@@ -1324,6 +1597,103 @@ void CameraDevice::set_exposure_program_mode()
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
 
     SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+bool CameraDevice::set_exposure_program_P_mode( cli::text& cameraMode)
+{
+    if(cameraMode == "p")
+    {
+        spdlog::warn("The camera is already in P mode");
+        return true;
+    }
+
+    if (1 != m_prop.exposure_program_mode.writable) {
+        // Not a settable property
+        spdlog::error("Exposure Program Mode is not writable");
+        return false;
+    }
+
+    int selected_index = 5;
+
+    auto& values = m_prop.exposure_program_mode.possible;
+    if(values.size() < 12)
+    {
+        selected_index = 1;
+    }
+
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    // Update the flag of the camera mode
+    cameraMode = 'p';
+    return true;
+}
+
+bool CameraDevice::set_exposure_program_P_Auto_mode( cli::text& cameraMode)
+{
+    if (1 != m_prop.exposure_program_mode.writable) {
+        // Not a settable property
+        spdlog::error("Exposure Program Mode is not writable");
+        return false;
+    }
+
+    auto& values = m_prop.exposure_program_mode.possible;
+
+    int selected_index = 1;
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Update the flag of the camera mode
+    cameraMode = 'p_Auto';
+    return true;
+}
+
+bool CameraDevice::set_exposure_program_M_mode( cli::text& cameraMode)
+{
+    if(cameraMode == "m")
+    {
+        spdlog::warn("The camera is already in M mode");
+        return true;
+    }
+
+    if (1 != m_prop.exposure_program_mode.writable) 
+    {
+        // Not a settable property
+        spdlog::error("Exposure Program Mode is not writable");
+        return false;
+    }
+
+    int selected_index = 8;
+
+    auto& values = m_prop.exposure_program_mode.possible;
+
+    if(values.size() < 12)
+    {
+        selected_index = 4;
+    }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ExposureProgramMode);
+    prop.SetCurrentValue(values[selected_index]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    // Update the flag of the camera mode
+    cameraMode = 'm';
+    return true;
 }
 
 void CameraDevice::set_still_capture_mode()
@@ -1659,6 +2029,56 @@ void CameraDevice::get_af_area_position()
     }
 }
 
+bool CameraDevice::get_af_area_position_bool()
+{
+    CrInt32 num = 0;
+    SDK::CrLiveViewProperty* lvProperty = nullptr;
+    CrInt32u getCode = SDK::CrLiveViewPropertyCode::CrLiveViewProperty_AF_Area_Position;
+    auto err = SDK::GetSelectLiveViewProperties(m_device_handle, 1, &getCode, &lvProperty, &num);
+    if (CR_FAILED(err)) 
+    {
+        spdlog::error("Failed to get AF Area Position [LiveViewProperties]");
+        return false;
+    }
+
+    if (lvProperty && 1 == num) 
+    {
+        // Got AF Area Position
+        auto prop = lvProperty[0];
+        if (SDK::CrFrameInfoType::CrFrameInfoType_FocusFrameInfo == prop.GetFrameInfoType()) 
+        {
+            int sizVal = prop.GetValueSize();
+            int count = sizVal / sizeof(SDK::CrFocusFrameInfo);
+            SDK::CrFocusFrameInfo* pFrameInfo = (SDK::CrFocusFrameInfo*)prop.GetValue();
+            if (0 == sizVal || nullptr == pFrameInfo) 
+            {
+                spdlog::error("FocusFrameInfo nothing");
+                // return false;
+            }
+            else 
+            {
+                for (std::int32_t frame = 0; frame < count; ++frame) 
+                {
+                    auto lvprop = pFrameInfo[frame];
+                    char buff[512];
+                    memset(buff, 0, sizeof(buff));
+
+                    snprintf(buff, sizeof(buff), "  FocusFrameInfo no[%d] pri[%d] w[%d] h[%d] Deno[%d-%d] Nume[%d-%d]",
+                        frame + 1,
+                        lvprop.priority,
+                        lvprop.width, lvprop.height,
+                        lvprop.xDenominator, lvprop.yDenominator,
+                        lvprop.xNumerator, lvprop.yNumerator);
+                      
+                    // spdlog::info("{}", buff);
+                }
+            }
+        }
+        SDK::ReleaseLiveViewProperties(m_device_handle, lvProperty);
+    }
+    return true;
+}
+
 void CameraDevice::set_af_area_position()
 {
     load_properties();
@@ -1762,6 +2182,65 @@ void CameraDevice::set_af_area_position()
 
 
     execute_pos_xy(SDK::CrDevicePropertyCode::CrDeviceProperty_AF_Area_Position);
+}
+
+bool CameraDevice::set_manual_af_area_position(int x_y)
+{
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_FocusArea);
+    prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt16Array);
+
+    auto& values = m_prop.focus_area.possible;
+    if(find(values.begin(), values.end(), SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) != values.end()) 
+    {
+        prop.SetCurrentValue(SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S);
+    }
+    else 
+    {
+        spdlog::error("Focus Area: Flexible_Spot_S is invalid.");
+        spdlog::error("Please confirm Focus Area Limit Setting in Camera Menu.");
+        return false;
+    }
+
+    bool execStat = false;
+    int i = 0;
+    SDK::CrError err_expromode;
+
+    auto err_prop = SDK::SetDeviceProperty(m_device_handle, &prop);
+    execStat = false;
+    while (i < 5)
+    {
+        err_expromode = SDK::SetDeviceProperty(m_device_handle, &prop);
+        if (CR_FAILED(err_prop)) {
+            tout << "Focus Area FAILED\n";
+            return false;
+        }
+        std::this_thread::sleep_for(1000ms);
+        get_focus_area();
+        if (m_prop.focus_area.current == SDK::CrFocusArea::CrFocusArea_Flexible_Spot_S) {
+            execStat = true;
+            break;
+        }
+        i++;
+    }
+    if (false == execStat)
+    {
+        spdlog::error("Focus Area FAILED");
+        return false;
+    }
+    bool getAfAreaPosition = get_af_area_position_bool();
+
+    if(getAfAreaPosition)
+    {
+        execute_pos_xy(SDK::CrDevicePropertyCode::CrDeviceProperty_AF_Area_Position, x_y);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void CameraDevice::set_select_media_format()
@@ -2986,6 +3465,26 @@ void CameraDevice::set_shutter_speed_value()
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+void CameraDevice::set_manual_shutter_speed_value(int userInput)
+{
+    if(false == get_shutter_speed_value())
+        return;
+
+    if (1 != m_prop.shutter_speed_value.writable) {
+        // Not a settable property
+        tout << "Shutter Speed Value is not writable\n";
+        return;
+    }
+
+    auto& values = m_prop.shutter_speed_value.possible;
+    
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(SDK::CrDevicePropertyCode::CrDeviceProperty_ShutterSpeedValue);
+    prop.SetCurrentValue(values[userInput]);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt64Array);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
 void CameraDevice::set_focus_bracket_shot_num()
 {
     if (false == get_focus_bracket_shot_num())
@@ -3526,6 +4025,18 @@ void CameraDevice::execute_pos_xy(CrInt16u code)
     SDK::SetDeviceProperty(m_device_handle, &prop);
 }
 
+void CameraDevice::execute_pos_xy(CrInt16u code, int x_y)
+{
+    load_properties();
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue((CrInt64u)x_y);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt32);
+
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
 void CameraDevice::execute_preset_focus()
 {
     load_properties();
@@ -3606,6 +4117,92 @@ void CameraDevice::execute_preset_focus()
     prop.SetCurrentValue(input_value);
     prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
     SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+void CameraDevice::execute_preset_focus_void()
+{
+    load_properties();
+
+    auto& values_save = m_prop.save_zoom_and_focus_position.possible;
+    auto& values_load = m_prop.load_zoom_and_focus_position.possible;
+
+    if ((1 != m_prop.save_zoom_and_focus_position.writable) &&
+        (1 != m_prop.load_zoom_and_focus_position.writable)){
+        // Not a settable property
+        spdlog::error("Preset Focus and Zoom is not supported.");
+        return;
+    }
+
+    CrInt32u code = 0;
+   
+    if(1 == m_prop.load_zoom_and_focus_position.writable) 
+    {
+        code = SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Load;
+    }
+   
+    text_stringstream ss_slot("1");
+    int input_value = 0;
+    ss_slot >> input_value;
+
+    if (code == SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Save) {
+        if (find(values_save.begin(), values_save.end(), input_value) == values_save.end()) {
+            return;
+        }
+    }
+    else {
+        if (find(values_load.begin(), values_load.end(), input_value) == values_load.end()) {
+            return;
+        }
+    }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue(input_value);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+}
+
+bool CameraDevice::execute_preset_focus_bool()
+{
+    load_properties();
+
+    auto& values_save = m_prop.save_zoom_and_focus_position.possible;
+    auto& values_load = m_prop.load_zoom_and_focus_position.possible;
+
+    if ((1 != m_prop.save_zoom_and_focus_position.writable) &&
+        (1 != m_prop.load_zoom_and_focus_position.writable)) {
+        // Not a settable property
+        spdlog::error("Preset Focus and Zoom is not supported.");
+        return false;
+    }
+
+    CrInt32u code = 0;
+   
+    if (1 == m_prop.load_zoom_and_focus_position.writable) {
+        code = SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Load;
+    }
+   
+    text_stringstream ss_slot("1");
+    int input_value = 0;
+    ss_slot >> input_value;
+
+    if (code == SDK::CrDevicePropertyCode::CrDeviceProperty_ZoomAndFocusPosition_Save) {
+        if (find(values_save.begin(), values_save.end(), input_value) == values_save.end()) {
+            return false;
+        }
+    } else {
+        if (find(values_load.begin(), values_load.end(), input_value) == values_load.end()) {
+            return false;
+        }
+    }
+
+    SDK::CrDeviceProperty prop;
+    prop.SetCode(code);
+    prop.SetCurrentValue(input_value);
+    prop.SetValueType(SDK::CrDataType::CrDataType_UInt8);
+    SDK::SetDeviceProperty(m_device_handle, &prop);
+
+    return true;
 }
 
 void CameraDevice::execute_APS_C_or_Full()
@@ -3745,7 +4342,97 @@ void CameraDevice::execute_focus_bracket()
     capture_image();
 }
 
-void CameraDevice::do_download_camera_setting_file()
+bool CameraDevice::do_download_camera_setting_file()
+{
+    if (false == get_camera_setting_saveread_state())
+    {
+        return false;
+    }
+        
+    if (m_prop.camera_setting_save_operation.current == SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable) 
+    {
+        spdlog::info("Camera-Setting Save Operation: Enable");
+    } 
+    else 
+    {
+        spdlog::error("Camera-Setting Save Operation: Disable");
+    }
+
+    // Get the latest status
+    load_properties();
+    if (SDK::CrCameraSettingSaveOperation::CrCameraSettingSaveOperation_Enable != m_prop.camera_setting_save_operation.current) 
+    {
+        spdlog::error("Unable to download Camera-Setting file.");
+        return false;
+    }
+
+    // File Name
+    text name = "Camera-settings";
+
+    // File path
+    auto path = fs::current_path();
+    auto err = SDK::DownloadSettingFile(m_device_handle, SDK::CrDownloadSettingFileType::CrDownloadSettingFileType_Setup,(CrChar*)path.c_str(), (CrChar*)name.c_str());
+
+    if (CR_FAILED(err)) 
+    {
+        spdlog::error("Download Camera-Setting file FAILED");
+        return false;
+    }
+
+    return true;
+}
+
+bool CameraDevice::do_upload_camera_setting_file()
+{
+    if (false == get_camera_setting_saveread_state())
+        return false;
+
+    if (m_prop.camera_setting_read_operation.current == SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable)
+    {
+        spdlog::info("Camera-Setting Save Operation: Enable");
+    } 
+    else 
+    {
+        spdlog::error("Camera-Setting Save Operation: Disable");
+    }
+
+    spdlog::info("Have the camera load the configuration file on the PC.");
+
+    //Search for *.DAT in current_path
+    std::vector<text> file_names;
+    getFileNames(file_names);
+
+    if (file_names.size() == 0) 
+    {
+        spdlog::error("DAT file not found.");
+        return false;
+    }
+
+    auto filepath = fs::current_path();
+    CrChar* filename = (CrChar*)filepath.c_str();
+
+    spdlog::info("File Name: {}.", filename);
+
+    // Get the latest status
+    load_properties();
+    if (SDK::CrCameraSettingReadOperation::CrCameraSettingReadOperation_Enable != m_prop.camera_setting_read_operation.current) 
+    {
+        spdlog::error("Unable to upload Camera-Setting file.");
+        return false;
+    }
+
+    auto err = SDK::UploadSettingFile(m_device_handle, SDK::CrUploadSettingFileType::CrUploadSettingFileType_Setup, filename);
+
+    if (CR_FAILED(err)) 
+    {
+        spdlog::error("Upload Camera-Setting file FAILED");
+        return false;
+    }
+
+    return true;
+}
+
+void CameraDevice::do_manual_download_camera_setting_file()
 {
     if (false == get_camera_setting_saveread_state())
         return;
@@ -3807,7 +4494,7 @@ if (CR_FAILED(err)) {
 #endif
 }
 
-void CameraDevice::do_upload_camera_setting_file()
+void CameraDevice::do_manual_upload_camera_setting_file()
 {
     if (false == get_camera_setting_saveread_state())
         return;
@@ -4009,14 +4696,14 @@ void CameraDevice::OnConnected(SDK::DeviceConnectionVersioin version)
 {
     m_connected.store(true);
     text id(this->get_id());
-    tout << "Connected to " << m_info->GetModel() << " (" << id.data() << ")\n";
+    spdlog::info("Connected to {} ({})", m_info->GetModel(), id.data());
 }
 
 void CameraDevice::OnDisconnected(CrInt32u error)
 {
     m_connected.store(false);
     text id(this->get_id());
-    tout << "Disconnected from " << m_info->GetModel() << " (" << id.data() << ")\n";
+    spdlog::info("Disconnected from {} ({}).", m_info->GetModel(), id.data());
     if ((false == m_spontaneous_disconnection) && (SDK::CrSdkControlMode_ContentsTransfer == m_modeSDK))
     {
         tout << "Please input '0' to return to the TOP-MENU\n";
@@ -4079,7 +4766,7 @@ void CameraDevice::OnWarning(CrInt32u warning)
 {
     text id(this->get_id());
     if (SDK::CrWarning_Connect_Reconnecting == warning) {
-        tout << "Device Disconnected. Reconnecting... " << m_info->GetModel() << " (" << id.data() << ")\n";
+        spdlog::warn("Device Disconnected. Reconnecting... {} ({})",  m_info->GetModel(), id.data());
         return;
     }
     switch (warning)
@@ -4339,11 +5026,12 @@ void CameraDevice::OnError(CrInt32u error)
     text msg = get_message_desc(error);
     if (!msg.empty()) {
         // output is 2 line
-        tout << std::endl << msg.data() << std::endl;
-        tout << m_info->GetModel() << " (" << id.data() << ")" << std::endl;
+        // tout << std::endl << msg.data() << std::endl;
+        spdlog::error("{}", msg.data());
+        // tout << m_info->GetModel() << " (" << id.data() << ")" << std::endl;
         if (SDK::CrError_Connect_TimeOut == error) {
             // append 1 line
-            tout << "Please input '0' after Connect camera" << std::endl;
+            // tout << "Please input '0' after Connect camera" << std::endl;
             return;
         }
         if (SDK::CrError_Connect_Disconnected == error)
@@ -4360,7 +5048,7 @@ void CameraDevice::OnError(CrInt32u error)
             m_fingerprint.clear();
             m_userPassword.clear();
         }
-        tout << "Please input '0' to return to the TOP-MENU\n";
+        // tout << "Please input '0' to return to the TOP-MENU\n";
     }
 }
 
@@ -5824,21 +6512,22 @@ void CameraDevice::get_mediaprofile()
 bool CameraDevice::get_focus_position_setting()
 {
     load_properties();
+    std::cout << m_prop.focus_position_setting.possible.size() << std::endl;
     if (m_prop.focus_position_setting.possible.size() < 1) {
-        tout << "Focus Position Setting is not supported.\n";
+        spdlog::error("Focus Position Setting is not supported.");
         return false;
     }
 
-    tout << "Focus Position Current Value : ";
+    spdlog::info("Focus Position Current Value : ");
     format_focus_position_value(m_prop.focus_position_current_value.current);
-    tout << "Focus Position Setting min   : ";
+    spdlog::info("Focus Position Setting min   : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(0));
-    tout << "Focus Position Setting max   : ";
+    spdlog::info("Focus Position Setting max   : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(1));
-    tout << "Focus Position Setting Step  : ";
+    spdlog::info("Focus Position Setting Step  : ");
     format_focus_position_value(m_prop.focus_position_setting.possible.at(2));
 
-    tout << "Focus Driving Status: " << format_focus_driving_status(m_prop.focus_driving_status.current) << std::endl;
+    spdlog::info("Focus Driving Status: {}", format_focus_driving_status(m_prop.focus_driving_status.current));
     return true;
 }
 
@@ -6046,6 +6735,11 @@ void CameraDevice::check_monitoringstatus()
         }
         SDK::ReleaseDeviceProperties(m_device_handle, prop_list);
     }
+}
+
+const std::atomic<bool> &CameraDevice::getM_connected()
+{
+   return m_connected;
 }
 
 void CameraDevice::startMonitoring()
