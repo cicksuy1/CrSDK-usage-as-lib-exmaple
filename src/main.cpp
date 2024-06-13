@@ -21,6 +21,7 @@
 #include "CrSDK_interface/CrSDK_interface.h"
 #include "https_server/https_server.h"
 #include "gpioPin/gpioPin.h"
+#include "UsbController/usbController.h"
 
 #define LIVEVIEW_ENB
 #define MSEARCH_ENB
@@ -345,6 +346,20 @@ int main()
             host = HOST;
         }
     }
+
+    // Replace "2-3" with the actual hub location and "2" with the port number you want to control
+    UsbController controller("2-3", 2);
+    std::cout << "Controlling hub at location: " << controller.getHubLocation() << " port: " << controller.getPort() << std::endl;
+
+    // Disable the USB device
+    controller.disable();
+    std::cout << "USB port disabled." << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // Sleep for 5 seconds
+
+    // Enable the USB device
+    controller.enable();
+    std::cout << "USB port enabled." << std::endl;
 
     CrSDKInterface *crsdk = new CrSDKInterface();
 

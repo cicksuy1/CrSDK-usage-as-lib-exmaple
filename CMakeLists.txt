@@ -67,6 +67,19 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
+# Check for filesystem library availability
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_FLAGS "-std=c++17")
+check_cxx_source_compiles("
+    #include <filesystem>
+    int main() { std::filesystem::path p; return 0; }
+" HAVE_STD_FILESYSTEM)
+
+if(NOT HAVE_STD_FILESYSTEM)
+    target_compile_definitions(UsbController PRIVATE -DUSE_EXPERIMENTAL_FILESYSTEM)
+    target_link_libraries(UsbController PRIVATE stdc++fs)
+endif()
+
 # For httplib
 message(STATUS "\nSearching for httplib...")
 find_package(httplib REQUIRED)
