@@ -54,6 +54,28 @@ The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface fo
    make -j12  # Adjust -j argument based on your CPU cores for parallel compilation
    ```
 
+**Modifying the Sudoers File**
+
+To avoid entering the password manually and suppress terminal output while running commands with high privileges in a Linux environment, you can use the following approach:
+
+Modify the sudoers file to allow running specific commands without a password. Be cautious, as improper modifications can compromise system security.
+
+1. **Edit the Sudoers File**: Use the `visudo` command to safely edit the sudoers file. This command checks the syntax and helps prevent syntax errors that can lock you out of `sudo`.
+
+   ```bash
+   sudo visudo
+   ```
+
+2. **Add the Rule**: In the editor, add the following line to the end of the file:
+
+   ```bash
+   lld ALL=(ALL) NOPASSWD: /usr/sbin/uhubctl
+   ```
+
+   This line allows the user `lld` to execute `/usr/sbin/uhubctl` without a password.
+
+3. **Save and Exit**: Save the changes and exit the editor. `visudo` will check the syntax and alert you if there are any issues.
+
 **Running the Server**
 
 1. **Navigate to the Build Directory:**
@@ -509,7 +531,7 @@ The base URL for the API is: `http://yourserver.com`
   }
   ```
 
-### 1. Get F-number
+### 10. Get F-number
 
 **Endpoint**: `/getFnumber`
 
@@ -716,8 +738,6 @@ The base URL for the API is: `http://yourserver.com`
 - **Error Handling**: The server returns detailed error messages and HTTP status codes to indicate the type of error encountered.
 
 For any questions or issues, please contact the server administrator.
-```
-
 This documentation provides an overview of each endpoint, the HTTP method used, a description of the endpoint's functionality, expected parameters, and potential responses with examples. Adjust the base URL and any other details specific to your deployment as needed.
 
 **Note:** Refer to the CrSDK documentation for specific details and limitations regarding camera control functions.

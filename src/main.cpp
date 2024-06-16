@@ -349,17 +349,17 @@ int main()
 
     // Replace "2-3" with the actual hub location and "2" with the port number you want to control
     UsbController controller("2-3", 2);
-    std::cout << "Controlling hub at location: " << controller.getHubLocation() << " port: " << controller.getPort() << std::endl;
+    spdlog::info("Controlling hub at location: {},  port: {}.", controller.getHubLocation(), controller.getPort());
 
     // Disable the USB device
     controller.disable();
-    std::cout << "USB port disabled." << std::endl;
+    spdlog::info("USB port disabled.");
 
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // Sleep for 5 seconds
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // Sleep for 1 seconds
 
     // Enable the USB device
     controller.enable();
-    std::cout << "USB port enabled." << std::endl;
+    spdlog::info("USB port enabled.");
 
     CrSDKInterface *crsdk = new CrSDKInterface();
 
