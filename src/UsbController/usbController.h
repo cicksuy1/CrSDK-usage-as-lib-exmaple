@@ -48,8 +48,6 @@ public:
      *
      * This method disables the USB port on the specified hub. It uses the `uhubctl` tool
      * to turn off power to the USB port.
-     * 
-     * @throws std::runtime_error if the command execution fails.
      */
     void disable();
 
@@ -58,8 +56,6 @@ public:
      *
      * This method enables the USB port on the specified hub. It uses the `uhubctl` tool
      * to turn on power to the USB port.
-     * 
-     * @throws std::runtime_error if the command execution fails.
      */
     void enable();
 
@@ -86,13 +82,14 @@ private:
     /**
      * @brief Runs the uhubctl command to control the USB port.
      * @param action The action to perform ("on" or "off").
+     * @return true if the command was successful, false otherwise.
      *
      * This method constructs and executes the `uhubctl` command to enable or disable the USB port.
-     * It suppresses the output and handles errors internally.
-     * 
-     * @throws std::runtime_error if the command execution fails.
+     * It suppresses the output and returns a boolean indicating the success or failure of the command.
      */
-    void runUhubctlCommand(const std::string& action);
+    bool runUhubctlCommand(const std::string& action);
 };
 
 #endif // USBCONTROLLER_H
+
+
