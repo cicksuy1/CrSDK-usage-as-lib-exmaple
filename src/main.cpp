@@ -353,13 +353,11 @@ int main()
 
     // Disable the USB device
     controller.disable();
-    spdlog::info("USB port disabled.");
 
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Sleep for 1 seconds
 
     // Enable the USB device
     controller.enable();
-    spdlog::info("USB port enabled.");
 
     CrSDKInterface *crsdk = new CrSDKInterface();
 

@@ -7,20 +7,14 @@ void UsbController::disable()
 {
     spdlog::info("Disabling USB port {} on hub {}.", port_, hubLocation_);
     bool success = runUhubctlCommand("off");
-    if (!success) 
-    {
-        spdlog::error("Failed to disable USB port {} on hub {}.", port_, hubLocation_);
-    }
+    success ? spdlog::info("USB port disabled.") : spdlog::error("Failed to disable USB port {} on hub {}.", port_, hubLocation_);
 }
 
 void UsbController::enable() 
 {
     spdlog::info("Enabling USB port {} on hub {}.", port_, hubLocation_);
     bool success = runUhubctlCommand("on");
-    if (!success) 
-    {
-        spdlog::error("Failed to enable USB port {} on hub {}.", port_, hubLocation_);
-    }
+    success ? spdlog::info("USB port enabled.") : spdlog::error("Failed to enable USB port {} on hub {}.", port_, hubLocation_);
 }
 
 std::string UsbController::getHubLocation() const 
