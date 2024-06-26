@@ -1,71 +1,102 @@
 
 # CrSDK HTTPS Server
 
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Installation](#installation)
+    - [Prerequisites](#prerequisites)
+    - [Building from Source](#building-from-source)
+- [Configuration](#configuration)
+- [Running the Server](#running-the-server)
+- [API Endpoints](#api-endpoints)
+- [SSL Certificates and Security](#ssl-certificates-and-security)
+- [Examples](#examples)
+- [Contributing](#contributing)
+
+
 ## Project Overview
 
-The CrSDK HTTPS Server is a C++ project designed to provide an HTTP interface for controlling a camera using the SUNY Remote SDK (CrSDK). Clients can send GET requests to the server to trigger various camera operations, including:
+The CrSDK HTTPS Server provides a flexible and easy-to-use HTTPS interface for controlling SONY cameras remotely. By leveraging the SONY Remote SDK (CrSDK), this server allows users to trigger various camera operations through simple GET requests. This makes it an ideal solution for web applications, automation scripts, and remote camera control systems.
 
-- Switching between automatic and manual camera modes.
-- Adjusting shutter speed.
-- Modifying ISO value.
-- Changing autofocus area position.
-- Downloading camera settings to a PC.
-- Uploading camera settings from a PC.
-- Load zoom and focus position.
-- Set the F-number index.
+## Features
 
-**Features**
+- **Intuitive HTTP API:**  Easily control camera functions with standard HTTP GET requests.
+- **SONY Remote SDK Integration:**  Robust camera control capabilities thanks to CrSDK.
+- **Dynamic IP Resolution:** Automatically determines the server's IP address based on configuration or ZeroTier.
+- **Comprehensive Camera Control:** Supports a wide range of camera operations, including mode switching, exposure settings, focus adjustment, and more.
+- **Customizable Configuration:** Tailor the server's behavior using a `config.txt` file.
 
-- **HTTP Control:** Interact with the camera using HTTP GET requests for convenient integration into web applications or automation scripts.
-- **SUNY Remote SDK Integration:** Leverages the CrSDK for robust camera control capabilities.
-- **Automatic Library Management:** The project's CMakeLists file automatically downloads and compiles required libraries if they are not found.
+## Dependencies
 
-**Prerequisites**
+The CrSDK HTTPS Server relies on the following libraries:
 
-- A C++ compiler supporting C++11 or later (e.g., GCC, Clang)
-- CMake ([https://cmake.org/](https://cmake.org/))
+* **httplib:** A header-only HTTP/HTTPS server and client library for C++.
+    - **Source:** [https://github.com/yhirose/cpp-httplib.git](https://github.com/yhirose/cpp-httplib.git)
+    - **Installation:** The project's CMakeLists file will automatically download and compile httplib if it's not found on your system.
 
-**Installation**
+* **spdlog:** A fast C++ logging library.
+    - **Source:** [https://github.com/gabime/spdlog.git](https://github.com/gabime/spdlog.git)
+    - **Installation:** The project's CMakeLists file will automatically download and compile spdlog if it's not found on your system.
 
-1. **Clone the Project:**
+* **fmt:** A modern formatting library for C++.
+    - **Installation (Ubuntu/Debian):** `sudo apt-get install -y libfmt-dev`
+    - **Other Systems:** See the fmt documentation for installation instructions on other platforms.
+
+* **JetsonGPIO:** A C++ library for controlling the GPIO pins on NVIDIA Jetson boards.
+    - **Source:** [https://github.com/pjueon/JetsonGPIO.git](https://github.com/pjueon/JetsonGPIO.git)
+    - **Installation:** The project's CMakeLists file will automatically download and compile JetsonGPIO if it's not found on your system.  Note that this library is specific to Jetson boards.
+
+
+## Installation
+
+### Prerequisites
+
+- **C++ Compiler:** A C++ compiler supporting C++11 or later (e.g., GCC, Clang)
+- **CMake:** The cross-platform build system generator (version 3.10 or higher)
+- **SONY Remote SDK (CrSDK):** Download and install the CrSDK for your platform from the SONY developer resources.
+
+### Building from Source
+
+1. **Clone the Repository:**
    ```bash
-   https://github.com/itzikChaver/CrSDK-HTTPS-Server.git
-   ```
-
-2. **Navigate to the Project Directory:**
-   ```bash
+   git clone https://github.com/itzikChaver/CrSDK-HTTPS-Server.git
    cd CrSDK-HTTPS-Server
    ```
 
-3. **Create a Build Directory:**
+2. **Create and Navigate to the Build Directory:**
    ```bash
    mkdir build
    cd build
    ```
 
-4. **Configure the Build (Optional):**
-   You can customize the build using CMake flags (refer to CMake documentation for details). Here's an example to build in Release mode:
+3. **Configure and Build with CMake:**
    ```bash
-   cmake .. -DCMAKE_BUILD_TYPE=Release
+   cmake ..  
+   make -j12 
    ```
 
-5. **Build the Project:**
+## Configuration
+
+The server's behavior can be customized using a `config.txt` file in the project's root directory. This file can contain:
+
+- **IP Address:** Specify a fixed IP address for the server.
+- **Other Settings:** You can add more configuration options in the future.
+
+If the `config.txt` file is not present or doesn't contain a valid IP address, the server will automatically try to use the machine's ZeroTier IP address (if available) or default to localhost.
+
+## Running the Server
+
+1. **Make sure the `config.txt` file (if used) is in the project root directory.**
+
+2. **Execute the Server:**
    ```bash
-   make -j12  # Adjust -j argument based on your CPU cores for parallel compilation
+   ./CrSDK_HTTPS_Server
    ```
 
-**Running the Server**
-
-1. **Navigate to the Build Directory:**
-   ```bash
-   cd build
-   ```
-
-2. **Run the Server:**
-   ```bash
-   ./CrSDK_HTTPS_Server  # The executable name might vary depending on your system
-   ```
-   The server will listen on port 8085
+The server will start and output the actual IP address and port it's listening on.
 
 **Using the Server**
 
@@ -90,640 +121,47 @@ Once the server is running, you can send GET requests to the following endpoints
 | `/exit`                                             | HTTPS handler for Receives a request to exit the program.
 
 
+## SSL Certificates and Security
 
-# API Documentation
+The CrSDK HTTPS Server uses HTTPS to ensure secure communication between the client and the server. To enable HTTPS, you need to provide the server with valid SSL certificates.
 
-## Overview
-This document describes the endpoints available in the server for managing camera operations, brightness settings, and other functionalities. Each endpoint supports JSON responses and utilizes HTTP status codes to indicate success or failure.
+### Certificate Requirements
 
-### Base URL
-The base URL for the API is: `http://yourserver.com`
+The server requires the following certificate files to be present in the project's root directory:
 
-## Endpoints
+* **Server Certificate (`jeston-server-embedded.crt`):** This certificate is used to identify the server to clients.
+* **Server Private Key (`jeston-server-embedded.key`):** This key is used by the server to decrypt encrypted messages from clients.
+* **Client Certificate (`client.crt`):** This certificate is used to authenticate the client to the server.
 
-### 1. Get Server Indicator
+### Generating Certificates
 
-**Endpoint**: `/indicator`
+You can use various tools to generate self-signed certificates for testing purposes. Here are a few popular options:
 
-**Method**: `GET`
+* **OpenSSL:** A widely used command-line tool for creating SSL certificates.
+* **mkcert:** A simple tool for generating locally-trusted development certificates.
+* **Let's Encrypt:** A free, automated, and open certificate authority (CA) that provides certificates for production use.
 
-**Description**: Check if the server is running.
+**Note:** For production environments, it's strongly recommended to use certificates issued by a trusted CA rather than self-signed certificates.
 
-**Response**:
-- **200 OK**: The server is running.
-  ```json
-  {
-    "message": "The server is running"
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to get indicator.
-  ```json
-  {
-    "error": "Failed to get indicator"
-  }
-  ```
+### Configuration
 
-### 2. Switch Camera to P Mode
+The server automatically loads the certificate files from the project's root directory. If you have placed the certificates in a different location, you will need to modify the server's source code to point to the correct file paths.
 
-**Endpoint**: `/switchTREADME.mdoPMode`
+### Additional Security Considerations
 
-**Method**: `GET`
+* **Strong Passwords:**  When generating certificates, use strong passwords to protect your private keys.
+* **Certificate Expiration:** Keep track of your certificate expiration dates and renew them before they expire.
+* **Firewall Configuration:**  Ensure that your firewall allows incoming traffic on port 8085 (or the port you have configured the server to use).
 
-**Description**: Switch the specified camera to P mode.
+**Disclaimer:** This project is intended for development and testing purposes. For production environments, we recommend consulting with a security expert to ensure that your HTTPS implementation meets industry best practices.
 
-**Parameters**:
-- **camera_id** (required): The ID of the camera to switch.
+## Examples (using curl)
 
-**Response**:
-- **200 OK**: Successfully switched to P mode.
-  ```json
-  {
-    "message": "Successfully switched to P mode",
-    "mode": "P"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to switch to P mode.
-  ```json
-  {
-    "error": "Failed to switch to P mode"
-  }
-  ```
-
-### 3. Switch Camera to M Mode
-
-**Endpoint**: `/switchToMMode`
-
-**Method**: `GET`
-
-**Description**: Switch the specified camera to M mode.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera to switch.
-
-**Response**:
-- **200 OK**: Successfully switched to M mode.
-  ```json
-  {
-    "message": "Successfully switched to M mode",
-    "mode": "M"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to switch to M mode.
-  ```json
-  {
-    "error": "Failed to switch to M mode"
-  }
-  ```
-
-### 4. Change Camera Brightness
-
-**Endpoint**: `/changeBrightness`
-
-**Method**: `GET`
-
-**Description**: Change the brightness of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-- **brightness_value** (required): The new brightness value (0-48).
-
-**Response**:
-- **200 OK**: Successfully changed brightness.
-  ```json
-  {
-    "message": "Successfully changed brightness value"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid parameters.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "the brightness value entered is incorrect."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **405 Method Not Allowed**: Camera is not in M mode.
-  ```json
-  {
-    "error": "Changing the camera brightness is not possible because the camera is not M(manual) mode."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to change brightness.
-  ```json
-  {
-    "error": "Failed to change brightness value"
-  }
-  ```
-
-### 5. Get Camera Brightness
-
-**Endpoint**: `/get_camera_brightness`
-
-**Method**: `GET`
-
-**Description**: Get the brightness value of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-
-**Response**:
-- **200 OK**: Successfully retrieved brightness.
-  ```json
-  {
-    "message": "Successfully retrieved camera brightness"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid parameters.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **405 Method Not Allowed**: Camera is not in M mode.
-  ```json
-  {
-    "error": "Geting the camera brightness is not possible because the camera is not M mode."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to get brightness.
-  ```json
-  {
-    "error": "Failed to retrieve camera brightness"
-  }
-  ```
-
-### 6. Change AF Area Position
-
-**Endpoint**: `/changeAFAreaPosition`
-
-**Method**: `GET`
-
-**Description**: Change the AF area position of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-- **x** (required): The new X position (0-639).
-- **y** (required): The new Y position (0-479).
-
-**Response**:
-- **200 OK**: Successfully changed AF area position.
-  ```json
-  {
-    "message": "Successfully changed AF Area Position"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid parameters.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-  ```json
-  {
-    "error": "Missing or invalid parameters."
-  }
-  ```
-  ```json
-  {
-    "error": "The selected X value is out of range."
-  }
-  ```
-  ```json
-  {
-    "error": "The selected Y value is out of range."
-  }
-  ```
-- **405 Method Not Allowed**: Camera is not in P mode.
-  ```json
-  {
-    "error": "Changing the AF Area Position is not possible because the camera is not P(auto) mode."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to change AF area position.
-  ```json
-  {
-    "error": "Failed to change AF Area Position"
-  }
-  ```
-
-### 7. Get Camera Mode
-
-**Endpoint**: `/getCameraMode`
-
-**Method**: `GET`
-
-**Description**: Get the mode of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-
-**Response**:
-- **200 OK**: Successfully retrieved camera mode.
-  ```json
-  {
-    "message": "Successfully retrieved camera mode",
-    "mode": "<camera_mode>"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to retrieve camera mode.
-  ```json
-  {
-    "error": "Failed to retrieve camera mode"
-  }
-  ```
-
-### 8. Download Camera Setting
-
-**Endpoint**: `/downloadCameraSetting`
-
-**Method**: `GET`
-
-**Description**: Download the settings of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-
-**Response**:
-- **200 OK**: Successfully downloaded camera setting.
-  ```json
-  {
-    "message": "Successfully download camera setting"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to download camera setting.
-  ```json
-  {
-    "error": "Failed to download camera setting"
-  }
-  ```
-
-### 9. Upload Camera Setting
-
-**Endpoint**: `/uploadCameraSetting`
-
-**Method**: `GET`
-
-**Description**: Upload the settings of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-
-**Response**:
-- **200 OK**: Successfully uploaded camera setting.
-  ```json
-  {
-    "message": "Successfully upload camera setting"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to upload camera setting.
-  ```json
-  {
-    "error": "Failed to upload camera setting"
-  }
-  ```
-
-### 1. Get F-number
-
-**Endpoint**: `/getFnumber`
-
-**Method**: `GET`
-
-**Description**: Get the F-number of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-
-**Response**:
-- **200 OK**: Successfully retrieved F-number.
-
-
-  ```json
-  {
-    "message": "Getting the index of the f-number was successful",
-    "f-number": "<f-number>"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid `camera_id`.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to retrieve F-number.
-  ```json
-  {
-    "error": "Failed to getting the index of the f-number"
-  }
-  ```
-
-### 11. Set F-number
-
-**Endpoint**: `/setFnumber`
-
-**Method**: `GET`
-
-**Description**: Set the F-number of the specified camera.
-
-**Parameters**:
-- **camera_id** (required): The ID of the camera.
-- **f_number_value** (required): The new F-number value (0-21).
-
-**Response**:
-- **200 OK**: Successfully set F-number.
-  ```json
-  {
-    "message": "Changing the index of the f-number was successful"
-  }
-  ```
-- **400 Bad Request**: Missing or invalid parameters.
-  ```json
-  {
-    "error": "Missing camera_id parameter."
-  }
-  ```
-  ```json
-  {
-    "error": "Camera_id out of range."
-  }
-  ```
-  ```json
-  {
-    "error": "Missing required parameters."
-  }
-  ```
-  ```json
-  {
-    "error": "the F-number value entered is incorrect."
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to set F-number.
-  ```json
-  {
-    "error": "Failed to set the index of the f-number"
-  }
-  ```
-
-### 12. Start Cameras
-
-**Endpoint**: `/startCameras`
-
-**Method**: `GET`
-
-**Description**: Start all cameras.
-
-**Response**:
-- **200 OK**: Successfully started cameras.
-  ```json
-  {
-    "message": "The cameras started successfully"
-  }
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {
-    "error": "Rate limit exceeded"
-  }
-  ```
-- **500 Internal Server Error**: Failed to start cameras.
-  ```json
-  {
-    "error": "Failed to start cameras"
-  }
-  ```
-  ```json
-  {
-    "error": "Failed to start cameras, gpio is not active"
-  }
-  ```
-
-### 13. Stop Cameras
-
-**Endpoint**: `/stopCameras`
-
-**Method**: `GET`
-
-**Description**: Stop all cameras.
-
-**Response**:
-- **200 OK**: Successfully stopped cameras.
-  ```json
-  {"message": "Stopping the cameras was successful."}
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {"error": "Rate limit exceeded"}
-  ```
-- **500 Internal Server Error**: Failed to stop cameras.
-  ```json
-  {"error": "Stopping the cameras failed."}
-  ```
-  ```json
-  {"error": "Stopping the cameras failed, gpio is not active"}
-  ```
-
-### 14. Restart Cameras
-
-**Endpoint**: `/restartCameras`
-
-**Method**: `GET`
-
-**Description**: Restart all cameras.
-
-**Response**:
-- **200 OK**: Successfully restarted cameras.
-  ```json
-  {"message": "Restarting the cameras was successful."}
-  ```
-- **429 Too Many Requests**: Rate limit exceeded.
-  ```json
-  {"error": "Rate limit exceeded"}
-  ```
-- **500 Internal Server Error**: Failed to restart cameras.
-  ```json
-  {"error": "Restarting the cameras failed."}
-  ```
-  ```json
-  {"error": "Restarting the cameras failed, gpio is not active."}
-  ```
-
-### 15. Exit Program
-
-**Endpoint**: `/exit`
-
-**Method**: `GET`
-
-**Description**: Exit the program.
-
-**Response**:
-- **200 OK**: Successfully exited the program.
-  ```json
-  {"message": "Successfully exit the program"}
-  ```
-- **500 Internal Server Error**: Failed to exit the program.
-  ```json
-  {"error": "Failed to exit the program"}
-  ```
-
----
-
-### Notes
-- **CORS**: All endpoints support Cross-Origin Resource Sharing (CORS) with the `Access-Control-Allow-Origin` header set to `*` for development purposes. It is recommended to restrict this in production.
-- **Rate Limiting**: The server implements rate limiting, returning HTTP 429 status code when the rate limit is exceeded.
-- **Error Handling**: The server returns detailed error messages and HTTP status codes to indicate the type of error encountered.
-
-For any questions or issues, please contact the server administrator.
+```bash
+curl "http://<server_ip_address>:8085/switch_to_p_mode?camera_id=1"
 ```
 
-This documentation provides an overview of each endpoint, the HTTP method used, a description of the endpoint's functionality, expected parameters, and potential responses with examples. Adjust the base URL and any other details specific to your deployment as needed.
+## Contributing
 
-**Note:** Refer to the CrSDK documentation for specific details and limitations regarding camera control functions.
-
-**Additional Notes**
-
-- The project's CMakeLists file manages downloading and compiling dependencies as needed.
-- This README provides a basic usage guide. Refer to the project's source code and any included documentation for further details.
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
