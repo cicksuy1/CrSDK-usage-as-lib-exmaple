@@ -13,11 +13,12 @@
 #include <fmt/format.h>
 #include <signal.h>
 #include <atomic>
+#include <filesystem>
+#include <string>
 
 #include "SonySDK/app/CRSDK/CameraRemote_SDK.h"
 #include "SonySDK/app/CameraDevice.h"
 #include "SonySDK/app/Text.h"
-
 #include "CrSDK_interface/CrSDK_interface.h"
 #include "https_server/https_server.h"
 #include "gpioPin/gpioPin.h"
@@ -27,8 +28,14 @@
 #define HOST "127.0.0.1"
 #define PORT 8085
 #define DEFAULT_PIN 16
+#define CERT_FILE "jeston-server-embedded.crt"
+#define KEY_FILE "jeston-server-embedded.key"
+#define CLIENT_FILE "client.crt"
 
 using namespace std;
+
+// Ensure you use the std namespace to avoid errors with std::filesystem
+namespace fs = std::experimental::filesystem;
 
 std::atomic<bool> stopRequested(false);
 std::mutex resourceMutex; // For thread safety during resource cleanup
@@ -239,6 +246,56 @@ std::string readIPAddressFromFile(const std::string &filePath)
 }
 
 /**
+ * @brief Checks if a file exists at the given filepath.
+ * @param filepath The path to the file to check.
+ * @return True if the file exists, false otherwise.
+ */
+bool checkFileExistence(const std::string &filepath) 
+{
+    std::ifstream file(filepath);
+    bool exists = file.good();
+    spdlog::info("Checking existence for {}: {}", filepath, exists ? "Found" : "Not Found");
+    return exists;
+}
+
+/**
+ * @brief Verifies the existence of required certificate files.
+ *
+ * This function checks whether the certificate files exist at their absolute paths.
+ * If any file is missing, it checks for their existence in the current project directory.
+ *
+ * @return True if all required certificate files are found, false otherwise.
+ */
+bool verifyCertificateFiles()
+{
+    if (checkFileExistence("/jetson_ssl/" + std::string(CERT_FILE)) &&
+        checkFileExistence("/jetson_ssl/" + std::string(KEY_FILE)) &&
+        checkFileExistence("/jetson_ssl/" + std::string(CLIENT_FILE)))
+    {
+        spdlog::info("All files exist in the absolute path.");
+        return true;
+    }
+    else
+    {
+        spdlog::warn("One or more files do not exist in the absolute path.");
+    }
+
+    if (checkFileExistence(fs::current_path().string() + "/" + std::string(CERT_FILE)) &&
+        checkFileExistence(fs::current_path().string() + "/" + std::string(KEY_FILE)) &&
+        checkFileExistence(fs::current_path().string() + "/" + std::string(CLIENT_FILE)))
+    {
+        spdlog::info("All files exist in the relative path.");
+        return true;
+    }
+    else
+    {
+        spdlog::warn("One or more files do not exist in the relative path.");
+    }
+
+    return false;
+}
+
+/**
  * @brief Checks if the server is running by sending a simple GET request to the server.
  *
  * This function creates a new HTTP client with SSL support, specifies the CA certificate,
@@ -248,24 +305,38 @@ std::string readIPAddressFromFile(const std::string &filePath)
  * the server is running and returns true.
  *
  * @param host The host address of the server.
+ * @param isSSlServer Flag whether the server is an SSL server (HTTPS) or a regular server (HTTP).
  * @return True if the server is running (responds with status 200), false otherwise.
  */
-bool checkIfTheServerIsRunning(std::string host)
+bool checkIfTheServerIsRunning(std::string host, bool isSslServer)
 {
     try
     {
-        // Create a new HTTP client with SSL and specify the CA certificate
-        httplib::SSLClient cli(host, PORT); // host, port
+        httplib::Result result;
 
-        // Use your CA bundle
-        cli.set_ca_cert_path("/jetson_ssl/client.crt");
+        if(isSslServer)
+        {
+            // Create a new HTTPS client with SSL and specify the CA certificate
+            httplib::SSLClient cli(host, PORT); // host, port
 
-        // Disable cert verification
-        cli.enable_server_certificate_verification(false);
+            // Use your CA bundle
+            cli.set_ca_cert_path("/jetson_ssl/client.crt");
 
-        // Perform a simple GET request
-        httplib::Result result = cli.Get("/");
+            // Disable cert verification
+            cli.enable_server_certificate_verification(false);
 
+            // Perform a simple GET request
+            result = cli.Get("/");
+        }
+        else
+        {
+            // Create a new HTTP client 
+            httplib::Client cli(host, PORT); // host, port
+
+            // Perform a simple GET request
+            result = cli.Get("/");
+        }
+        
         if (!result)
         { // Check if the request failed
             // Handle the error case (request failed)
@@ -346,6 +417,26 @@ int main()
         }
     }
 
+    // Configure server parameters
+    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
+    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
+    std::string client_file = "/jetson_ssl/client.crt";
+
+    // Create an instance of the GpioPin class
+    GpioPin *gpioPin = new GpioPin(DEFAULT_PIN);
+
+    spdlog::info("Starting file verification...");
+
+    // Debug the current working directory
+    spdlog::info("Current working directory: {}", fs::current_path().string());
+
+    bool isSslServer = verifyCertificateFiles();
+
+    if(!isSslServer)
+    {
+        return EXIT_FAILURE;
+    }
+
     CrSDKInterface *crsdk = new CrSDKInterface();
 
     // Initializes the Camera Remote SDK.
@@ -411,15 +502,8 @@ int main()
         return EXIT_FAILURE;
     }
 
-    // Configure server parameters
-    const std::string cert_file = "/jetson_ssl/jeston-server-embedded.crt";
-    const std::string key_file = "/jetson_ssl/jeston-server-embedded.key";
-
-    // Create an instance of the GpioPin class
-    GpioPin *gpioPin = new GpioPin(DEFAULT_PIN);
-
-    // Initialize the Server object with host, port, SSL certificate, key file, optional streamer, and shouldVectorRun flag.
-    Server server(host, PORT, cert_file, key_file, stopRequested, crsdk);
+    // Initialize the Server object with host, port, SSL certificate, streamer, and shouldVectorRun flag.
+    Server server(host, PORT, isSslServer, cert_file, key_file, client_file, stopRequested, crsdk);
 
     if (gpioPin)
     {
@@ -458,7 +542,7 @@ int main()
             }
 
             // Checking if the server is alive
-            bool isServerRunning = checkIfTheServerIsRunning(host);
+            bool isServerRunning = checkIfTheServerIsRunning(host, isSslServer);
             if (!isServerRunning)
             {
                 server.restartServer();

@@ -4,8 +4,6 @@
  */
 
 #include "https_server.h"
-#include <spdlog/spdlog.h>
-#include <fmt/format.h>
 
 std::string exec(const char *cmd)
 {
@@ -77,8 +75,8 @@ bool is_port_available(int port)
     return available;
 }
 
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface)
-    : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), stopRequested(stopRequested), crsdkInterface_(crsdkInterface)
+Server::Server(const std::string &host, int port, bool isSSlServer, const std::string &cert_file, const std::string &key_file, std::string &client_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface)
+    : sslServer(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), isSSlServer(isSSlServer), client_file_(client_file), stopRequested(stopRequested), crsdkInterface_(crsdkInterface)
 {
     setupRoutes();
 
@@ -86,8 +84,8 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
     initializeTokenBucket(/* maxTokens */ 10, /* refillRate */ 1, /* refillNumber */ 10); // Adjust these values as needed
 }
 
-Server::Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin *gpioP, CrSDKInterface *crsdkInterface)
-    : server(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), stopRequested(stopRequested), gpioPin(gpioP), crsdkInterface_(crsdkInterface)
+Server::Server(const std::string &host, int port, bool isSSlServer, const std::string &cert_file, const std::string &key_file, std::string &client_file, std::atomic<bool> &stopRequested, GpioPin *gpioP, CrSDKInterface *crsdkInterface)
+    : sslServer(cert_file.c_str(), key_file.c_str()), host_(host), port_(port), isSSlServer(isSSlServer), client_file_(client_file), stopRequested(stopRequested), gpioPin(gpioP), crsdkInterface_(crsdkInterface)
 {
     setupRoutes();
 
@@ -97,50 +95,100 @@ Server::Server(const std::string &host, int port, const std::string &cert_file, 
 
 void Server::setupRoutes()
 {
-    server.Get("/", [this](const httplib::Request &req, httplib::Response &res)
-               { handleIndicator(req, res); });
+    if(isSSlServer)
+    {
+        sslServer.Get("/", [this](const httplib::Request &req, httplib::Response &res)
+                { handleIndicator(req, res); });
 
-    server.Get("/switch_to_p_mode", [this](const httplib::Request &req, httplib::Response &res)
-               { handleSwitchToPMode(req, res); });
+        sslServer.Get("/switch_to_p_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSwitchToPMode(req, res); });
 
-    server.Get("/switch_to_m_mode", [this](const httplib::Request &req, httplib::Response &res)
-               { handleSwitchToMMode(req, res); });
+        sslServer.Get("/switch_to_m_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSwitchToMMode(req, res); });
 
-    server.Get("/change_brightness", [this](const httplib::Request &req, httplib::Response &res)
-               { handleChangeBrightness(req, res); });
+        sslServer.Get("/change_brightness", [this](const httplib::Request &req, httplib::Response &res)
+                { handleChangeBrightness(req, res); });
 
-    server.Get("/change_af_area_position", [this](const httplib::Request &req, httplib::Response &res)
-               { handleChangeAFAreaPosition(req, res); });
+        sslServer.Get("/change_af_area_position", [this](const httplib::Request &req, httplib::Response &res)
+                { handleChangeAFAreaPosition(req, res); });
 
-    server.Get("/get_camera_mode", [this](const httplib::Request &req, httplib::Response &res)
-               { handleGetCameraMode(req, res); });
+        sslServer.Get("/get_camera_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetCameraMode(req, res); });
 
-    server.Get("/get_camera_brightness", [this](const httplib::Request &req, httplib::Response &res)
-               { handleGetCameraBrightness(req, res); });
+        sslServer.Get("/get_camera_brightness", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetCameraBrightness(req, res); });
 
-    server.Get("/download_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
-               { handleDownloadCameraSetting(req, res); });
+        sslServer.Get("/download_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
+                { handleDownloadCameraSetting(req, res); });
 
-    server.Get("/upload_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
-               { handleUploadCameraSetting(req, res); });
+        sslServer.Get("/upload_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
+                { handleUploadCameraSetting(req, res); });
 
-    server.Get("/get_f_number", [this](const httplib::Request &req, httplib::Response &res)
-               { handleGetFnumber(req, res); });
+        sslServer.Get("/get_f_number", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetFnumber(req, res); });
 
-    server.Get("/set_f_number", [this](const httplib::Request &req, httplib::Response &res)
-               { handleSetFnumber(req, res); });
+        sslServer.Get("/set_f_number", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSetFnumber(req, res); });
 
-    server.Get("/start_cameras", [this](const httplib::Request &req, httplib::Response &res)
-               { handleStartCameras(req, res); });
+        sslServer.Get("/start_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleStartCameras(req, res); });
 
-    server.Get("/stop_cameras", [this](const httplib::Request &req, httplib::Response &res)
-               { handleStopCameras(req, res); });
+        sslServer.Get("/stop_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleStopCameras(req, res); });
 
-    server.Get("/restat_cameras", [this](const httplib::Request &req, httplib::Response &res)
-               { handleRestatCameras(req, res); });
+        sslServer.Get("/restat_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleRestatCameras(req, res); });
 
-    server.Get("/exit", [this](const httplib::Request &req, httplib::Response &res)
-               { handleExit(req, res); });
+        sslServer.Get("/exit", [this](const httplib::Request &req, httplib::Response &res)
+                { handleExit(req, res); });
+    }
+    else
+    {
+        server.Get("/", [this](const httplib::Request &req, httplib::Response &res)
+                { handleIndicator(req, res); });
+
+        server.Get("/switch_to_p_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSwitchToPMode(req, res); });
+
+        server.Get("/switch_to_m_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSwitchToMMode(req, res); });
+
+        server.Get("/change_brightness", [this](const httplib::Request &req, httplib::Response &res)
+                { handleChangeBrightness(req, res); });
+
+        server.Get("/change_af_area_position", [this](const httplib::Request &req, httplib::Response &res)
+                { handleChangeAFAreaPosition(req, res); });
+
+        server.Get("/get_camera_mode", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetCameraMode(req, res); });
+
+        server.Get("/get_camera_brightness", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetCameraBrightness(req, res); });
+
+        server.Get("/download_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
+                { handleDownloadCameraSetting(req, res); });
+
+        server.Get("/upload_camera_setting", [this](const httplib::Request &req, httplib::Response &res)
+                { handleUploadCameraSetting(req, res); });
+
+        server.Get("/get_f_number", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetFnumber(req, res); });
+
+        server.Get("/set_f_number", [this](const httplib::Request &req, httplib::Response &res)
+                { handleSetFnumber(req, res); });
+
+        server.Get("/start_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleStartCameras(req, res); });
+
+        server.Get("/stop_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleStopCameras(req, res); });
+
+        server.Get("/restat_cameras", [this](const httplib::Request &req, httplib::Response &res)
+                { handleRestatCameras(req, res); });
+
+        server.Get("/exit", [this](const httplib::Request &req, httplib::Response &res)
+                { handleExit(req, res); });
+    }
 }
 
 void Server::setGpioPin(GpioPin *gpioPin)
@@ -164,15 +212,17 @@ void Server::run()
             }
         }
 
+        isSSlServer ? spdlog::info("Starting HTTPS server...") : spdlog::info("Starting HTTP server...");
+
         // Print a message to the console indicating the server address and port
-        spdlog::info("The server runs at address: {}:{}", host_, port_);
+        isSSlServer ? spdlog::info("The server runs at address: https://{}:{}", host_, port_) : spdlog::info("The server runs at address: http://{}:{}", host_, port_);
         // Start the monitoring thread
         // startMonitoringThread();
 
         while (!stopRequested.load())
         {
             // Start listening for incoming requests on the specified host and port
-            server.listen(host_, port_);
+            isSSlServer ? sslServer.listen(host_, port_) : server.listen(host_, port_);
         }
     }
     catch (const std::exception &e)
@@ -257,7 +307,7 @@ bool Server::stopServer()
     try
     {
         spdlog::info("stop server...");
-        server.stop();
+        isSSlServer ? sslServer.stop() : server.stop();
         stopRequested.store(true); // Set the flag to stop
         spdlog::info("The server stopped successfully.");
         return true;
@@ -276,18 +326,32 @@ void Server::startMonitoringThread()
     {
         while (true) 
         {
-            try {
-                // Create a new HTTP client with SSL and specify the CA certificate
-                httplib::SSLClient cli(host_, port_); // host, port
+            try 
+            {
+                httplib::Result result;
 
-                // Use your CA bundle
-                cli.set_ca_cert_path("/jetson_ssl/client.crt");
+                if(this->isSSlServer)
+                {
+                    // Create a new HTTPS client with SSL and specify the CA certificate
+                    httplib::SSLClient cli(host_, port_); // host, port
 
-                // Disable cert verification
-                cli.enable_server_certificate_verification(false);
+                    // Use your CA bundle
+                    cli.set_ca_cert_path("/jetson_ssl/client.crt");
 
-                // Perform a simple GET request
-                httplib::Result result = cli.Get("/");
+                    // Disable cert verification
+                    cli.enable_server_certificate_verification(false);
+
+                    // Perform a simple GET request
+                    result = cli.Get("/");
+                }
+                else
+                {
+                    // Create a new HTTP client 
+                    httplib::Client cli(host_, port_); // host, port
+
+                    // Perform a simple GET request
+                    result = cli.Get("/");
+                }
 
                 if (!result) { // Check if the request failed
                     // Handle the error case (request failed)
@@ -334,13 +398,14 @@ void Server::restartServer()
     // Wait some time before restarting (to prevent flooding errors)
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
+    spdlog::info("Restart the server...");
+
     // Restart the server
     while (!stopRequested.load())
     {
-        server.listen(host_, port_);
+         isSSlServer ? sslServer.listen(host_, port_) : server.listen(host_, port_);
     }
 
-    spdlog::info("Server initialization succeeded");
 }
 
 void Server::handleIndicator(const httplib::Request &req, httplib::Response &res)

@@ -27,6 +27,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <cstring>
+#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <filesystem>
 
 #include "../CrSDK_interface/CrSDK_interface.h"
 #include "../gpioPin/gpioPin.h"
@@ -40,6 +43,8 @@ using json = nlohmann::json;
 
 // Macro to keep the index the same
 #define NORMAL_INDEX(index) (index)
+
+namespace fs = std::experimental::filesystem;
 
 /**
  * @class Server
@@ -56,24 +61,28 @@ public:
      * @brief Constructs a Server object with basic HTTP server parameters.
      * @param host The host address on which the server will listen.
      * @param port The port on which the server will listen.
+     * @param isSSlServer Flag whether the server is an SSL server (HTTPS) or a regular server (HTTP).
      * @param cert_file The path to the SSL certificate file.
      * @param key_file The path to the SSL key file.
+     * @param client_file The path to the SSL client file.
      * @param stopRequested A pointer to std::atomic<bool> flag.
      * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface = nullptr);
+    Server(const std::string &host, int port, bool isSSlServer, const std::string &cert_file, const std::string &key_file, std::string &client_file, std::atomic<bool> &stopRequested, CrSDKInterface *crsdkInterface = nullptr);
 
     /**
      * @brief Constructs a Server object with basic HTTP server parameters.
      * @param host The host address on which the server will listen.
      * @param port The port on which the server will listen.
+     * @param isSSlServer Flag whether the server is an SSL server (HTTPS) or a regular server (HTTP).
      * @param cert_file The path to the SSL certificate file.
      * @param key_file The path to the SSL key file.
+     * @param client_file The path to the SSL client file.
      * @param stopRequested A pointer to std::atomic<bool> flag.
      * @param gpioP An instance of GPIO pin to associate with the server.
      * @param crsdkInterface instance of CrSDKInterface class.
      */
-    Server(const std::string &host, int port, const std::string &cert_file, const std::string &key_file, std::atomic<bool> &stopRequested, GpioPin *gpioP = nullptr, CrSDKInterface *crsdkInterface = nullptr);
+    Server(const std::string &host, int port, bool isSSlServer, const std::string &cert_file, const std::string &key_file, std::string &client_file, std::atomic<bool> &stopRequested, GpioPin *gpioP = nullptr, CrSDKInterface *crsdkInterface = nullptr);
 
     /**
      * Sets the GpioPin object associated with the server.
@@ -126,16 +135,20 @@ public:
      */
     void restartServer();
 
+    bool isSSlServer;                                           ///< Flag whether the server is an SSL server (HTTPS) or a regular server (HTTP).
+
 private:
 
-    httplib::SSLServer server;                                  ///< HTTPS server instance.
+    httplib::SSLServer sslServer;                               ///< HTTPS server instance.
+    httplib::Server server;                                     ///< HTTP server instance.
     std::string host_;                                          ///< Host address on which the server will listen.
     int port_;                                                  ///< Port on which the server will listen.
+    std::string &client_file_;                                  ///< The path to the SSL client file.
     CrSDKInterface *crsdkInterface_;                            ///< Add an instance of CrSDKInterface
     std::thread monitoringThread;                               ///< Thread object for monitoring
     std::atomic<bool> &stopRequested;                           ///< A flag for stopping the server thread
     GpioPin *gpioPin;                                           ///< Declaration of GpioPin instance
-
+    
     // Token bucket parameters
     int maxTokens_;                                             ///< Maximum number of tokens in the bucket
     int currentTokens_;                                         ///< Current number of tokens in the bucket
