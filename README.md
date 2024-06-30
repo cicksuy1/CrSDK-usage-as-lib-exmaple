@@ -14,6 +14,7 @@
 - [API Endpoints](#api-endpoints)
 - [SSL Certificates and Security](#ssl-certificates-and-security)
 - [Examples](#examples)
+- [Docker Containerization](#docker-containerization)
 - [Contributing](#contributing)
 
 
@@ -160,6 +161,101 @@ The server automatically loads the certificate files from the project's root dir
 ```bash
 curl "http://<server_ip_address>:8085/switch_to_p_mode?camera_id=1"
 ```
+
+## Docker Containerization
+
+Docker offers a convenient way to package and distribute your CrSDK HTTPS Server application, ensuring a consistent and isolated environment for running the server. This section provides instructions on how to build a Docker image for the server and run it in a container.
+
+### Prerequisites
+
+- **Docker:** Make sure you have Docker installed on your system. You can download and install it from the official Docker website: [https://www.docker.com/get-started](https://www.docker.com/get-started)
+
+### Building the Docker Image
+
+1. **Navigate to Project Root:** Open a terminal and navigate to the root directory of the CrSDK HTTPS Server project.
+
+2. **Create a Dockerfile:** Create a file named `Dockerfile` (without any file extension) in the project's root directory.
+
+3. **Dockerfile Content:** Paste the following content into the `Dockerfile`:
+
+```Dockerfile
+# Stage 1: Build Environment
+FROM ubuntu:20.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    libssl-dev \
+    libfmt-dev
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code
+COPY . /app
+
+# Download and install SonySDK (if not already installed)
+RUN if [ ! -d "/app/include/SonySDK" ]; then \
+        wget -O SonySDK.tar.gz "[https://www.sony.net/Products/CameraRemoteSDK/download/index.html](https://www.sony.net/Products/CameraRemoteSDK/download/index.html)" && \
+        tar -xzf SonySDK.tar.gz -C /app/include && \
+        rm SonySDK.tar.gz \
+    fi
+
+# Build httplib and spdlog (if not found)
+RUN if [ ! -d "/usr/local/include/httplib" ]; then \
+        git clone [https://github.com/yhirose/cpp-httplib.git](https://github.com/yhirose/cpp-httplib.git) /app/deps/httplib && \
+        cd /app/deps/httplib && \
+        mkdir build && cd build && \
+        cmake .. && make -j12 && sudo make install \
+    fi
+
+RUN if [ ! -d "/usr/local/include/spdlog" ]; then \
+        git clone [https://github.com/gabime/spdlog.git](https://github.com/gabime/spdlog.git) /app/deps/spdlog && \
+        cd /app/deps/spdlog && \
+        mkdir build && cd build && \
+        cmake .. && make -j12 && sudo make install \
+    fi
+
+# Build your project
+RUN mkdir build && cd build && \
+    cmake .. && \
+    make
+
+# Stage 2: Runtime Environment (Optional, for smaller image size)
+FROM ubuntu:20.04
+COPY --from=0 /app/build/CrSDK_HTTPS_Server /usr/local/bin/
+CMD ["CrSDK_HTTPS_Server"]
+```
+
+4. **Build the Image:** Run the following command in the terminal:
+
+```bash
+docker build -t crsdk-server .
+```
+
+This command will build a Docker image named `crsdk-server`. The `.` at the end indicates that the Dockerfile is in the current directory.
+
+### Running the Server in a Docker Container
+
+After building the Docker image, you can run the server in a container using the following command:
+
+```bash
+docker run -p 8085:8085 crsdk-server
+```
+
+- **`-p 8085:8085`:**  This option maps port 8085 inside the container to port 8085 on your host machine. This allows you to access the server running inside the container from your web browser or other applications.
+
+You can now interact with the server by sending HTTP requests to `http://localhost:8085`.
+
+**Additional Notes**
+
+* If you've modified the port number in your `config.txt`, adjust the port mapping in the `docker run` command accordingly.
+* Consider using Docker Compose for a more convenient way to define and run multi-container Docker applications.
+* If you're using a different base image (other than Ubuntu 20.04), you may need to modify the `apt-get install` command to install the correct packages.
+* For production deployments, you may want to explore additional Docker best practices, such as using a non-root user within the container and optimizing the Docker image for size and security.
 
 ## Contributing
 
