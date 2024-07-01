@@ -185,16 +185,18 @@ Docker offers a convenient way to package and distribute your CrSDK HTTPS Server
 
 ```Dockerfile
 # Stage 1: Build Environment
-FROM ubuntu:20.04
+FROM ubuntu:20.04 as builder
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
     build-essential \
     cmake \
     git \
     wget \
-    libssl-dev \
-    libfmt-dev
+    libfmt-dev \
+    libevent-dev \
+    curl \
+    libxml2-dev
 
 # Set working directory
 WORKDIR /app
@@ -202,36 +204,98 @@ WORKDIR /app
 # Copy source code
 COPY . /app
 
-# Download and install SonySDK (if not already installed)
+# Install OpenSSL from source
+RUN curl -sSL https://www.openssl.org/source/openssl-3.0.7.tar.gz -o openssl.tar.gz && \
+    tar -xzvf openssl.tar.gz && \
+    cd openssl-3.0.7 && \
+    ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && \
+    rm -rf openssl-3.0.7 openssl.tar.gz
+
+# Ensure the new OpenSSL version is used
+ENV PATH="/usr/local/openssl/bin:$PATH"
+ENV LD_LIBRARY_PATH="/usr/local/openssl/lib:$LD_LIBRARY_PATH"
+ENV PKG_CONFIG_PATH="/usr/local/openssl/lib/pkgconfig:$PKG_CONFIG_PATH"
+ENV OPENSSL_ROOT_DIR="/usr/local/openssl"
+
+# Download and install SonySDK
 RUN if [ ! -d "/app/include/SonySDK" ]; then \
-        wget -O SonySDK.tar.gz "[https://www.sony.net/Products/CameraRemoteSDK/download/index.html](https://www.sony.net/Products/CameraRemoteSDK/download/index.html)" && \
-        tar -xzf SonySDK.tar.gz -C /app/include && \
-        rm SonySDK.tar.gz \
-    fi
-
-# Build httplib and spdlog (if not found)
+                wget -O SonySDK.tar.gz "https://developerworld.wpp.developer.sony.com/file/download/sony-camera-remote-api-beta-sdk-2/Download/index.html" && \
+                tar -xzf SonySDK.tar.gz -C /app/include && \
+                rm SonySDK.tar.gz; \
+            fi
+    
+# Build httplib (if not found)
 RUN if [ ! -d "/usr/local/include/httplib" ]; then \
-        git clone [https://github.com/yhirose/cpp-httplib.git](https://github.com/yhirose/cpp-httplib.git) /app/deps/httplib && \
-        cd /app/deps/httplib && \
-        mkdir build && cd build && \
-        cmake .. && make -j12 && sudo make install \
-    fi
+                git clone https://github.com/yhirose/cpp-httplib.git /app/deps/httplib && \
+                cd /app/deps/httplib && \
+                mkdir build && cd build && \
+                cmake .. && make -j12 && make install; \
+            fi
 
+# Build libevent (if not found)
+RUN if [ ! -d "/usr/local/include/libevent" ]; then \
+                git clone https://github.com/libevent/libevent.git /app/deps/libevent && \
+                cd /app/deps/libevent && \
+                mkdir build && cd build && \
+                cmake .. && make -j12 && make install; \
+            fi
+
+# Build spdlog (if not found)
 RUN if [ ! -d "/usr/local/include/spdlog" ]; then \
-        git clone [https://github.com/gabime/spdlog.git](https://github.com/gabime/spdlog.git) /app/deps/spdlog && \
-        cd /app/deps/spdlog && \
-        mkdir build && cd build && \
-        cmake .. && make -j12 && sudo make install \
-    fi
+                git clone https://github.com/gabime/spdlog.git /app/deps/spdlog && \
+                cd /app/deps/spdlog && \
+                mkdir build && cd build && \
+                cmake .. && make -j12 && make install; \
+            fi
+
+# Build JetsonGPIO (if not found)
+RUN if [ ! -d "/usr/local/include/JetsonGPIO" ]; then \
+                git clone https://github.com/pjueon/JetsonGPIO.git /app/deps/JetsonGPIO && \
+                cd /app/deps/JetsonGPIO && \
+                mkdir build && cd build && \
+                cmake .. && make -j12 && make install; \
+            fi
+
+# Copy additional required files
+COPY include/SonySDK_files/libmonitor_protocol_pf.so /usr/local/lib/
+COPY include/SonySDK_files/libmonitor_protocol.so /usr/local/lib/
+COPY include/SonySDK_files/libCr_Core.so /usr/local/lib/
+COPY include/SonySDK_files/CrAdapter /usr/local/lib/CrAdapter
 
 # Build your project
-RUN mkdir build && cd build && \
+RUN if [ ! -d "build" ]; then mkdir build; fi && cd build && \
     cmake .. && \
     make
 
 # Stage 2: Runtime Environment (Optional, for smaller image size)
 FROM ubuntu:20.04
-COPY --from=0 /app/build/CrSDK_HTTPS_Server /usr/local/bin/
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y libxml2
+
+# Copy the built application from the builder stage
+COPY --from=builder /app/build/CrSDK_HTTPS_Server /usr/local/bin/
+
+# Copy necessary libraries from the builder stage
+COPY --from=builder /usr/local/lib/libJetsonGPIO.so.1 /usr/local/lib/
+COPY --from=builder /usr/local/lib/libmonitor_protocol_pf.so /usr/local/lib/
+COPY --from=builder /usr/local/lib/libmonitor_protocol.so /usr/local/lib/
+COPY --from=builder /usr/local/lib/libCr_Core.so /usr/local/lib/
+COPY --from=builder /usr/local/lib/CrAdapter /usr/local/lib/CrAdapter
+
+# Ensure the new OpenSSL version is used
+COPY --from=builder /usr/local/openssl /usr/local/openssl
+ENV PATH="/usr/local/openssl/bin:$PATH"
+ENV LD_LIBRARY_PATH="/usr/local/openssl/lib:$LD_LIBRARY_PATH"
+ENV PKG_CONFIG_PATH="/usr/local/openssl/lib/pkgconfig:$PKG_CONFIG_PATH"
+ENV OPENSSL_ROOT_DIR="/usr/local/openssl"
+
+# Set library path
+ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+
 CMD ["CrSDK_HTTPS_Server"]
 ```
 
@@ -254,6 +318,49 @@ docker run -p 8085:8085 crsdk-server
 - **`-p 8085:8085`:**  This option maps port 8085 inside the container to port 8085 on your host machine. This allows you to access the server running inside the container from your web browser or other applications.
 
 The server is now accessible via HTTPS at https://<host>:8085, provided the necessary SSL/TLS certificate files are in place. For testing or development environments without certificates, you can also access the server via HTTP at http://<host>:8085.
+
+### Transferring and Running the Docker Image on Another Machine
+
+After you have successfully built the Docker image on your source machine, you can transfer it to another machine and run it there. This process involves saving the image, transferring the saved file, and loading the image on the target machine.
+
+1. **Save the Docker Image:**
+   
+   ```bash
+   docker save crsdk-server -o crsdk-server.tar
+   ```
+
+   This command saves the `crsdk-server` image as a `.tar` archive file named `crsdk-server.tar`.
+
+2. **Transfer the Image:**
+   
+   Transfer the `crsdk-server.tar` file to the target machine using any suitable method, such as a USB drive, network share, or cloud storage service.
+
+3. **Load the Image on the Target Machine:**
+   
+   On the target machine, open a terminal and navigate to the directory where you transferred the `crsdk-server.tar` file. Then, run the following command:
+
+   ```bash
+   docker load -i crsdk-server.tar
+   ```
+
+   This command will load the Docker image from the archive file.
+
+4. **Run the Container:**
+
+   Finally, run the Docker container using the same command you used on the source machine:
+
+   ```bash
+   docker run -p 8085:8085 crsdk-server
+   ```
+
+   The server should now be running on the target machine and accessible via HTTP/HTTPS on the mapped ports.
+
+**Additional Considerations:**
+
+* **Environment Variables:** If your application relies on environment variables, make sure to set them on the target machine before running the container.
+* **Certificates:** If you're using HTTPS, ensure that the necessary SSL/TLS certificate files are available in the correct location on the target machine.
+
+By following these steps, you can easily transfer and run your CrSDK HTTPS Server Docker container on any machine with Docker installed, ensuring consistent behavior across different environments.
 
 **Additional Notes**
 
