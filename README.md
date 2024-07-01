@@ -122,39 +122,44 @@ Once the server is running, you can send GET requests to the following endpoints
 | `/exit`                                             | HTTPS handler for Receives a request to exit the program.
 
 
+
 ## SSL Certificates and Security
 
-The CrSDK HTTPS Server uses HTTPS to ensure secure communication between the client and the server. To enable HTTPS, you need to provide the server with valid SSL certificates.
+The CrSDK HTTPS Server prioritizes secure communication using HTTPS. To enable this, you need to provide the server with valid SSL certificates.
 
 ### Certificate Requirements
 
-The server requires the following certificate files to be present in the project's root directory:
+The server requires the following certificate files in the project's root directory:
 
-* **Server Certificate (`jeston-server-embedded.crt`):** This certificate is used to identify the server to clients.
-* **Server Private Key (`jeston-server-embedded.key`):** This key is used by the server to decrypt encrypted messages from clients.
-* **Client Certificate (`client.crt`):** This certificate is used to authenticate the client to the server.
+* **Server Certificate (`jeston-server-embedded.crt`):** Identifies the server to clients.
+* **Server Private Key (`jeston-server-embedded.key`):** Used by the server to decrypt encrypted messages.
+* **Client Certificate (`client.crt`):** Authenticates the client to the server.
 
 ### Generating Certificates
 
-You can use various tools to generate self-signed certificates for testing purposes. Here are a few popular options:
+You can generate self-signed certificates for testing using tools like:
 
-* **OpenSSL:** A widely used command-line tool for creating SSL certificates.
-* **mkcert:** A simple tool for generating locally-trusted development certificates.
-* **Let's Encrypt:** A free, automated, and open certificate authority (CA) that provides certificates for production use.
+* **OpenSSL:** A versatile command-line tool.
+* **mkcert:** Simplifies generating locally-trusted certificates.
+* **Let's Encrypt:** A free, automated CA for production-grade certificates.
 
-**Note:** For production environments, it's strongly recommended to use certificates issued by a trusted CA rather than self-signed certificates.
+**Important Note:** For production use, obtain certificates from a trusted CA, not self-signed ones.
 
 ### Configuration
 
-The server automatically loads the certificate files from the project's root directory. If you have placed the certificates in a different location, you will need to modify the server's source code to point to the correct file paths.
+By default, the server looks for certificates in the project's root. You can change this in the source code if needed.
+
+**Fallback to HTTP**
+
+If **any** of the required certificate files are missing, the server will automatically fall back to running in HTTP mode (unencrypted) on the same port. This is primarily for development and testing convenience, as HTTPS is strongly recommended for security in production environments.
 
 ### Additional Security Considerations
 
-* **Strong Passwords:**  When generating certificates, use strong passwords to protect your private keys.
-* **Certificate Expiration:** Keep track of your certificate expiration dates and renew them before they expire.
-* **Firewall Configuration:**  Ensure that your firewall allows incoming traffic on port 8085 (or the port you have configured the server to use).
+* **Strong Passwords:** Use strong passwords when generating private keys.
+* **Certificate Expiration:** Monitor and renew certificates before they expire.
+* **Firewall:** Allow incoming traffic on the server's port (default 8085 or your custom configuration).
 
-**Disclaimer:** This project is intended for development and testing purposes. For production environments, we recommend consulting with a security expert to ensure that your HTTPS implementation meets industry best practices.
+**Disclaimer:** This project is intended for development and testing. For production, consult a security expert to ensure your HTTPS setup is robust.
 
 ## Examples (using curl)
 
@@ -248,7 +253,7 @@ docker run -p 8085:8085 crsdk-server
 
 - **`-p 8085:8085`:**  This option maps port 8085 inside the container to port 8085 on your host machine. This allows you to access the server running inside the container from your web browser or other applications.
 
-You can now interact with the server by sending HTTP requests to `http://localhost:8085`.
+The server is now accessible via HTTPS at https://<host>:8085, provided the necessary SSL/TLS certificate files are in place. For testing or development environments without certificates, you can also access the server via HTTP at http://<host>:8085.
 
 **Additional Notes**
 
