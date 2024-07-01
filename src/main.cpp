@@ -170,7 +170,7 @@ std::string getZeroTierIP()
             ipAddress = ipAddress.substr(0, slashPos);
         }
 
-        spdlog::info("IP: {}", ipAddress);
+        // spdlog::info("IP: {}", ipAddress);
 
         std::string prefix = ipAddress.substr(0, 9);
         if (prefix.compare("10.147.17") == 0)
@@ -186,7 +186,7 @@ std::string getZeroTierIP()
     {
         for (const auto &address : filteredAddresses)
         {
-            spdlog::info("Filtered IP address: {}", address);
+            spdlog::info("Filtered Zerotier IP address: {}", address);
         }
 
         return filteredAddresses[0]; // Returning the first filtered address as an example
@@ -431,11 +431,6 @@ int main()
     spdlog::info("Current working directory: {}", fs::current_path().string());
 
     bool isSslServer = verifyCertificateFiles();
-
-    if(!isSslServer)
-    {
-        return EXIT_FAILURE;
-    }
 
     CrSDKInterface *crsdk = new CrSDKInterface();
 
